@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useCompany } from './providers/CompanyProvider';
 import { generateReportChapter } from '../services/ai-service';
@@ -9,6 +10,28 @@ import { useToast } from '../contexts/ToastContext';
 interface ReportGenProps {
   language: Language;
 }
+
+const DocumentSkeleton = () => (
+    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm z-10 p-8 flex flex-col animate-fade-in">
+        <div className="flex items-center gap-3 mb-8">
+            <Loader2 className="w-5 h-5 text-celestial-purple animate-spin" />
+            <span className="text-sm text-celestial-purple font-mono animate-pulse">AI Agent Drafting Content...</span>
+        </div>
+        <div className="space-y-4 max-w-2xl w-full mx-auto opacity-50">
+            <div className="h-8 w-3/4 bg-white/10 rounded animate-pulse" />
+            <div className="space-y-2 pt-4">
+                <div className="h-4 w-full bg-white/10 rounded animate-pulse delay-75" />
+                <div className="h-4 w-full bg-white/10 rounded animate-pulse delay-100" />
+                <div className="h-4 w-5/6 bg-white/10 rounded animate-pulse delay-150" />
+            </div>
+            <div className="space-y-2 pt-4">
+                <div className="h-4 w-full bg-white/10 rounded animate-pulse delay-200" />
+                <div className="h-4 w-4/5 bg-white/10 rounded animate-pulse delay-300" />
+            </div>
+            <div className="h-32 w-full bg-white/5 rounded border border-white/5 mt-6 animate-pulse" />
+        </div>
+    </div>
+);
 
 export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
   const { companyName, esgScores, totalScore, carbonCredits, budget } = useCompany();
@@ -47,11 +70,10 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
   const renderMarkdown = (text: string) => {
     try {
         const html = marked.parse(text);
-        // Ensure we handle potential promise return from marked (though usually sync)
         if (typeof html === 'string') {
             return { __html: html };
         }
-        return { __html: text }; // Fallback if async
+        return { __html: text }; 
     } catch (e) {
         return { __html: text };
     }
@@ -111,7 +133,7 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
             </div>
 
             {/* Preview Area */}
-            <div className="lg:col-span-2 glass-panel p-8 rounded-2xl min-h-[500px] border border-white/10 bg-slate-900/40 relative">
+            <div className="lg:col-span-2 glass-panel p-8 rounded-2xl min-h-[500px] border border-white/10 bg-slate-900/40 relative overflow-hidden">
                 {reportContent ? (
                     <div className="animate-fade-in">
                         <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
@@ -138,14 +160,7 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
                     </div>
                 )}
                 
-                {isGenerating && (
-                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
-                        <Loader2 className="w-12 h-12 text-celestial-purple animate-spin mb-4" />
-                        <p className="text-celestial-purple animate-pulse">
-                            {isZh ? 'AI 正在撰寫中...' : 'AI is drafting...'}
-                        </p>
-                    </div>
-                )}
+                {isGenerating && <DocumentSkeleton />}
             </div>
         </div>
     </div>

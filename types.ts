@@ -1,3 +1,4 @@
+
 /**
  * Defines the available views/modules within the application.
  * Maps directly to the sidebar navigation items.
@@ -80,6 +81,32 @@ export type OmniEsgConfidence = 'high' | 'medium' | 'low';
  * Supported color themes for the Celestial Nexus design system.
  */
 export type OmniEsgColor = 'emerald' | 'gold' | 'purple' | 'blue' | 'slate';
+
+/**
+ * Universal Label (萬能標籤) Protocol Definition.
+ * Defines the semantic soul of the component.
+ */
+export interface UniversalLabel {
+  /** Unique identifier for tracking and evolution (e.g., "metric-carbon-scope1") */
+  id: string;
+  /** Semantic type definition (e.g., "Decimal", "Percentage", "Status") */
+  dataType?: string;
+  /** Business context importance */
+  importance?: 'critical' | 'high' | 'medium' | 'low';
+  /** Human readable label (fallback) */
+  text: string;
+  /** Description for AI analysis context */
+  description?: string;
+}
+
+/**
+ * Represents an interaction event for the Evolution Engine.
+ */
+export interface InteractionEvent {
+  componentId: string;
+  eventType: 'click' | 'hover' | 'edit' | 'ai-trigger';
+  timestamp: number;
+}
 
 /**
  * Represents a standard ESG metric used throughout the dashboard and reports.

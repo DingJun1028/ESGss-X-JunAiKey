@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity, BrainCircuit, Search, CheckCircle } from 'lucide-react';
 import { ChatMessage, Language } from '../types';
 import { streamEsgInsight } from '../services/geminiService';
 import { useToast } from '../contexts/ToastContext';
@@ -10,33 +11,28 @@ interface AiAssistantProps {
   language: Language;
 }
 
-/**
- * The "Intelligence Orchestrator" chat component.
- * 
- * Features:
- * - Floating trigger button.
- * - Real-time streaming response from Gemini AI.
- * - Simulated "Agentic RAG" process visualization (Planning, Tool Use, etc.).
- * - Markdown rendering for rich text responses.
- * - Message virtualization for performance and smooth scrolling.
- */
+interface AgentStep {
+    text: string;
+    icon: React.ElementType;
+}
+
 export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  // Status text for the agentic process visualization (e.g., "Planning...")
-  const [agentStatus, setAgentStatus] = useState<string>('');
+  // Status object for visualization
+  const [currentStep, setCurrentStep] = useState<AgentStep | null>(null);
+  
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addToast } = useToast();
   
-  // Initialize greeting when language changes or first mount
   useEffect(() => {
     const greeting = language === 'zh-TW' 
       ? "您好。我是您的 Intelligence Orchestrator (智慧協作中樞)。今天能協助您進行哪些 ESG 轉型任務？"
       : "Greetings. I am your Intelligence Orchestrator. How can I assist with your ESG transformation today?";
       
-    // Only reset if empty or just switching language for the welcome message
     if (messages.length === 0) {
       setMessages([{
         id: 'welcome',
@@ -47,34 +43,30 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
     }
   }, [language]);
 
-  /**
-   * Simulates the "Agentic RAG" process visually before the AI response starts.
-   * This creates a delay and shows steps like "Planning", "Analyzing", etc.
-   */
   const runAgenticSteps = async () => {
-    const stepsZh = [
-      "正在規劃任務分解 (Planning)...",
-      "調用 esgAnalyzer 分析數據...",
-      "查詢 Regulatory Expert 知識庫...",
-      "進行 Graph RAG 多跳躍推理...",
-      "自我反思與驗證 (Reflecting)..."
+    const stepsZh: AgentStep[] = [
+      { text: "正在規劃任務分解 (Planning)...", icon: Workflow },
+      { text: "調用 esgAnalyzer 分析數據...", icon: BrainCircuit },
+      { text: "查詢 Regulatory Expert 知識庫...", icon: Search },
+      { text: "進行 Graph RAG 多跳躍推理...", icon: Database },
+      { text: "自我反思與驗證 (Reflecting)...", icon: CheckCircle }
     ];
-    const stepsEn = [
-      "Decomposing task (Planning)...",
-      "Invoking esgAnalyzer...",
-      "Querying Regulatory Expert...",
-      "Performing Graph RAG multi-hop reasoning...",
-      "Self-reflecting & Validating..."
+    const stepsEn: AgentStep[] = [
+      { text: "Decomposing task (Planning)...", icon: Workflow },
+      { text: "Invoking esgAnalyzer...", icon: BrainCircuit },
+      { text: "Querying Regulatory Expert...", icon: Search },
+      { text: "Performing Graph RAG multi-hop reasoning...", icon: Database },
+      { text: "Self-reflecting & Validating...", icon: CheckCircle }
     ];
     
     const steps = language === 'zh-TW' ? stepsZh : stepsEn;
 
     for (const step of steps) {
-      setAgentStatus(step);
-      // Random delay between 400ms and 800ms to simulate "work"
+      setCurrentStep(step);
+      // Random delay between 400ms and 800ms
       await new Promise(r => setTimeout(r, 400 + Math.random() * 400));
     }
-    setAgentStatus('');
+    setCurrentStep(null);
   };
 
   const handleSend = async () => {
@@ -89,13 +81,14 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
 
     setMessages(prev => [...prev, userMsg]);
     setInput('');
+    if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+    }
     setIsTyping(true);
 
     try {
-      // 1. Run visualization of Agentic RAG
       await runAgenticSteps();
 
-      // 2. Create placeholder for model response
       const modelMsgId = (Date.now() + 1).toString();
       const initialModelMsg: ChatMessage = {
         id: modelMsgId,
@@ -105,7 +98,6 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
       };
       setMessages(prev => [...prev, initialModelMsg]);
 
-      // 3. Start streaming response
       const stream = streamEsgInsight(userMsg.text, language);
       let fullText = '';
       let isFirstChunk = true;
@@ -123,7 +115,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
       
     } catch (e: any) {
         setIsTyping(false);
-        setAgentStatus('');
+        setCurrentStep(null);
         let errorMsg = language === 'zh-TW' 
           ? "無法連接至 Celestial Nexus。" 
           : "Unable to connect to Celestial Nexus.";
@@ -137,20 +129,17 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
             : "Please configure API_KEY to unlock AI features. (Simulated Mode)";
           toastType = 'warning';
           
-          // Fallback simulated response with Markdown
           const simulatedResponse = language === 'zh-TW' 
             ? "*(模擬回應 - Agentic RAG Mode)*\n\n**根據 TCFD 框架與內部碳數據**，建議企業採取以下步驟：\n\n1. 進行 **氣候風險情境分析** (Scenario Analysis)\n2. 盤查 **範疇一 (Scope 1)** 與 **範疇二 (Scope 2)** 碳排放數據\n3. 制定淨零轉型路徑"
             : "*(Simulated Response - Agentic RAG Mode)*\n\n**According to the TCFD framework and internal carbon data**, it is recommended that companies:\n\n1. Conduct **Climate Risk Scenario Analysis**\n2. Inventory **Scope 1** and **Scope 2** carbon emissions\n3. Develop a Net-Zero transition pathway";
             
            setMessages(prev => prev.map(msg => {
-             // If we have an empty placeholder (id matches), update it.
              if (msg.role === 'model' && msg.text === '' && msg.timestamp > userMsg.timestamp) {
                  return { ...msg, text: simulatedResponse };
              }
              return msg;
            }));
         } else {
-             // Real error
              setMessages(prev => prev.filter(msg => !(msg.role === 'model' && msg.text === '')));
              setMessages(prev => [...prev, {
                 id: (Date.now() + 2).toString(),
@@ -161,6 +150,17 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
         }
 
         addToast(toastType, errorMsg, errorTitle);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSend();
     }
   };
 
@@ -175,7 +175,6 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
 
   return (
     <>
-      {/* Trigger Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -186,11 +185,9 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
         </button>
       )}
 
-      {/* Chat Interface */}
       {isOpen && (
         <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-[450px] h-[600px] max-h-[80vh] flex flex-col rounded-2xl glass-panel overflow-hidden animate-fade-in border-celestial-glassBorder shadow-2xl">
           
-          {/* Header */}
           <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center backdrop-blur-xl shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-celestial-emerald animate-ping" />
@@ -207,7 +204,6 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
             </button>
           </div>
 
-          {/* Messages with Virtualization */}
           <div className="flex-1 overflow-hidden p-0">
              <Virtuoso
                 ref={virtuosoRef}
@@ -236,16 +232,17 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
                 )}
                 components={{
                   Footer: () => (
-                    (isTyping || agentStatus) ? (
+                    (isTyping || currentStep) ? (
                       <div className="flex justify-start px-4 py-2">
                         <div className="bg-slate-800/50 p-3 rounded-2xl rounded-bl-none border border-white/5 flex flex-col gap-2 min-w-[200px]">
                           <div className="flex items-center gap-2">
                             <Workflow className="w-4 h-4 text-celestial-emerald animate-spin-slow" />
                             <span className="text-xs font-semibold text-celestial-emerald">Agentic Process</span>
                           </div>
-                          {agentStatus ? (
-                             <div className="text-xs text-gray-300 animate-pulse pl-6 border-l border-white/10">
-                                {agentStatus}
+                          {currentStep ? (
+                             <div className="flex items-center gap-2 text-xs text-gray-300 animate-pulse pl-6 border-l border-white/10 transition-all duration-300">
+                                <currentStep.icon className="w-3 h-3 text-celestial-gold" />
+                                {currentStep.text}
                              </div>
                           ) : (
                             <div className="flex items-center gap-2 pl-6">
@@ -261,24 +258,29 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
              />
           </div>
 
-          {/* Input Area */}
           <div className="p-4 bg-white/5 border-t border-white/10 shrink-0">
             <div className="relative">
-              <input
-                type="text"
+              <textarea
+                ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                }}
+                onKeyDown={handleKeyDown}
                 placeholder={language === 'zh-TW' ? "輸入指令以啟動 Agent..." : "Enter command to trigger Agent..."}
-                className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-celestial-purple/50 focus:ring-1 focus:ring-celestial-purple/50 placeholder-gray-500 transition-all"
+                rows={1}
+                className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-celestial-purple/50 focus:ring-1 focus:ring-celestial-purple/50 placeholder-gray-500 transition-all resize-none block custom-scrollbar"
+                style={{ minHeight: '46px', maxHeight: '120px' }}
               />
-              <button className="absolute right-10 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-white transition-colors">
+              <button className="absolute right-10 bottom-3 p-1.5 text-gray-400 hover:text-white transition-colors">
                  <Paperclip className="w-4 h-4" />
               </button>
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || isTyping || !!agentStatus} 
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-celestial-emerald/20 hover:bg-celestial-emerald/40 text-celestial-emerald rounded-lg transition-all disabled:opacity-50"
+                disabled={!input.trim() || isTyping || !!currentStep} 
+                className="absolute right-2 bottom-2.5 p-1.5 bg-celestial-emerald/20 hover:bg-celestial-emerald/40 text-celestial-emerald rounded-lg transition-all disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
               </button>

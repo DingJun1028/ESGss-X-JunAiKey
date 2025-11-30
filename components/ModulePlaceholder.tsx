@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { LucideIcon, Loader2 } from 'lucide-react';
@@ -35,8 +36,11 @@ export const ModulePlaceholder: React.FC<ModulePlaceholderProps> = ({ title, des
 
       <div className="glass-panel p-8 rounded-2xl border border-dashed border-white/10 bg-white/5 min-h-[400px] flex flex-col items-center justify-center text-center relative overflow-hidden">
         
-        {/* Background Animation */}
+        {/* Background Animation & Grid */}
         <div className="absolute inset-0 pointer-events-none">
+           {/* Grid Pattern */}
+           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:20px_20px]" />
+           {/* Pulsing Orb */}
            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-celestial-emerald/10 rounded-full blur-3xl transition-all duration-1000 ${isInitializing ? 'animate-pulse scale-110' : 'scale-100'}`} />
         </div>
 

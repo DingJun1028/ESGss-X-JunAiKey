@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getMockMetrics, CHART_DATA, TRANSLATIONS } from '../constants';
 import { Wind, Activity, FileText, Zap, BrainCircuit } from 'lucide-react';
@@ -8,6 +9,7 @@ import { Language } from '../types';
 import { OmniEsgCell } from './OmniEsgCell';
 import { ChartSkeleton } from './ChartSkeleton';
 import { useToast } from '../contexts/ToastContext';
+import { analyzeDataAnomaly } from '../services/ai-service';
 
 interface DashboardProps {
   language: Language;
@@ -37,8 +39,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
       }
   }
 
-  const handleAiAnalyze = (metricLabel: string) => {
-      addToast('info', `AI Analyzing ${metricLabel}... Generating deep insights based on double materiality.`, 'Intelligence Orchestrator');
+  const handleAiAnalyze = async (metricLabel: string) => {
+      addToast('info', `AI Analyzing ${metricLabel}... Generating deep insights.`, 'Intelligence Orchestrator');
+      
+      try {
+          // Find metric data to pass as context
+          const metric = metrics.find(m => m.label === metricLabel);
+          const value = metric ? metric.value : 'Unknown';
+          
+          const analysis = await analyzeDataAnomaly(
+              metricLabel,
+              value,
+              "Historical Avg",
+              "Detected significant deviation in Q2 operations.",
+              language
+          );
+          
+          // In a real app, this would open a modal. Here we show a summary toast.
+          addToast('success', 'Analysis Complete. Insights available in Strategy Hub.', 'AI Analysis Finished');
+          console.log("AI Analysis Result:", analysis);
+      } catch (error) {
+          addToast('error', 'Failed to perform analysis.', 'System Error');
+      }
   };
 
   return (
@@ -68,6 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
           : metrics.map((metric) => (
               <OmniEsgCell
                 key={metric.id}
+                id={metric.id} // Pass explicit ID for Self-Growth tracking
                 mode="card"
                 label={metric.label}
                 value={metric.value}
@@ -133,7 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
           )}
         </div>
 
-        {/* Notifications / Feed (Using List Mode Cells) */}
+        {/* Notifications / Feed */}
         <div className="glass-panel p-6 rounded-2xl relative flex flex-col min-h-[400px]">
           <h3 className="text-lg font-semibold text-white mb-4">{t.feedTitle}</h3>
           
@@ -146,9 +169,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
                 </>
              ) : (
                 <>
-                    <OmniEsgCell mode="list" label="Energy Anomaly" value="+15%" color="gold" icon={Zap} traits={['gap-filling']} subValue="Plant B • 2m ago" />
-                    <OmniEsgCell mode="list" label="Q2 Goal Met" value="Done" color="emerald" icon={Activity} traits={['performance']} subValue="Water Reduction" />
-                    <OmniEsgCell mode="list" label="EU CSRD Update" value="New" color="purple" icon={FileText} traits={['learning']} subValue="Regulatory Bot" dataLink="ai" />
+                    <OmniEsgCell id="feed-energy" mode="list" label="Energy Anomaly" value="+15%" color="gold" icon={Zap} traits={['gap-filling']} subValue="Plant B • 2m ago" onAiAnalyze={() => handleAiAnalyze('Energy')} />
+                    <OmniEsgCell id="feed-goal" mode="list" label="Q2 Goal Met" value="Done" color="emerald" icon={Activity} traits={['performance']} subValue="Water Reduction" />
+                    <OmniEsgCell id="feed-csrd" mode="list" label="EU CSRD Update" value="New" color="purple" icon={FileText} traits={['learning']} subValue="Regulatory Bot" dataLink="ai" onAiAnalyze={() => handleAiAnalyze('CSRD')} />
                 </>
              )}
           </div>

@@ -101,7 +101,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
                 </button>
                 <div className="flex items-center gap-3 pl-6 border-l border-white/10">
                     <div className="text-right hidden sm:block">
-                        <div className="text-sm font-medium text-white">Alex Chen</div>
+                        <div className="text-sm font-medium text-white">DingJun Hong</div>
                         <div className="text-xs text-gray-500">Chief Sustainability Officer</div>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 border border-white/20 overflow-hidden">
