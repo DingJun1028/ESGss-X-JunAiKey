@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { DashboardWidget, AuditLogEntry, EsgCard, Quest, ToDoItem } from '../../types';
-import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is available via importmap or we use a simple generator
+import { DashboardWidget, AuditLogEntry, EsgCard, Quest, ToDoItem, Badge, CarbonData } from '../../types';
+import { v4 as uuidv4 } from 'uuid'; 
 
 export interface EsgScores {
   environmental: number;
@@ -26,10 +26,12 @@ interface CompanyContextType {
   xp: number;
   level: number;
   collectedCards: string[]; // List of Card IDs
+  badges: Badge[];
   awardXp: (amount: number) => void;
   unlockCard: (cardId: string) => void;
+  checkBadges: () => Badge[]; // Triggers badge check and returns newly unlocked
   
-  // Quests & Tasks (New)
+  // Quests & Tasks
   quests: Quest[];
   todos: ToDoItem[];
   completeQuest: (id: string, xpReward: number) => void;
@@ -47,6 +49,10 @@ interface CompanyContextType {
   carbonCredits: number;
   setCarbonCredits: (amount: number) => void;
   updateCarbonCredits: (amount: number) => void;
+  
+  // Carbon Calculator State
+  carbonData: CarbonData;
+  updateCarbonData: (data: Partial<CarbonData>) => void;
   
   /** Goodwill Coin Balance */
   goodwillBalance: number;
@@ -75,6 +81,23 @@ const DEFAULT_SCORES: EsgScores = {
   social: 86.0,
   governance: 88.5,
 };
+
+const DEFAULT_CARBON_DATA: CarbonData = {
+    fuelConsumption: 0,
+    electricityConsumption: 0,
+    scope1: 1240, // Base mock value
+    scope2: 850,  // Base mock value
+    scope3: 4500,
+    lastUpdated: Date.now()
+};
+
+const DEFAULT_BADGES: Badge[] = [
+    { id: 'b1', name: 'Net Zero Starter', description: 'Begin your carbon reduction journey.', icon: 'Leaf', condition: 'Login', isUnlocked: true, unlockedAt: Date.now() },
+    { id: 'b2', name: 'Data Wizard', description: 'Connect a live data source.', icon: 'Database', condition: 'Integrate', isUnlocked: false },
+    { id: 'b3', name: 'ESG Elite', description: 'Achieve an ESG Score > 90.', icon: 'Award', condition: 'Score>90', isUnlocked: false },
+    { id: 'b4', name: 'Carbon Fighter', description: 'Reduce Scope 1 emissions below 1000t.', icon: 'ShieldCheck', condition: 'Scope1<1000', isUnlocked: false },
+    { id: 'b5', name: 'Millionaire', description: 'Accumulate 5,000 Goodwill Coins.', icon: 'Coins', condition: 'GWC>5000', isUnlocked: false },
+];
 
 const DEFAULT_BUDGET = 5000000; // $5M
 const DEFAULT_CREDITS = 1200; // tCO2e
@@ -146,9 +169,11 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Gamification State
   const [xp, setXp] = useState(DEFAULT_XP);
   const [collectedCards, setCollectedCards] = useState<string[]>(DEFAULT_CARDS);
+  const [badges, setBadges] = useState<Badge[]>(DEFAULT_BADGES);
   const [quests, setQuests] = useState<Quest[]>(DEFAULT_QUESTS);
   const [todos, setTodos] = useState<ToDoItem[]>(DEFAULT_TODOS);
 
+  const [carbonData, setCarbonData] = useState<CarbonData>(DEFAULT_CARBON_DATA);
   const [esgScores, setEsgScores] = useState<EsgScores>(DEFAULT_SCORES);
   const [customWidgets, setCustomWidgets] = useState<DashboardWidget[]>(DEFAULT_WIDGETS);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
@@ -173,6 +198,8 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (parsed.auditLogs) setAuditLogs(parsed.auditLogs);
           if (parsed.quests) setQuests(parsed.quests);
           if (parsed.todos) setTodos(parsed.todos);
+          if (parsed.badges) setBadges(parsed.badges);
+          if (parsed.carbonData) setCarbonData(parsed.carbonData);
         } catch (e) {
           console.error("ESGss: Failed to load persistence data.", e);
         }
@@ -186,14 +213,15 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (isInitialized && typeof window !== 'undefined') {
       const state = {
         companyName, userName, userRole, budget, carbonCredits, goodwillBalance,
-        xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos
+        xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData
       };
       localStorage.setItem('esgss_storage_v1', JSON.stringify(state));
     }
-  }, [companyName, userName, userRole, budget, carbonCredits, goodwillBalance, xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, isInitialized]);
+  }, [companyName, userName, userRole, budget, carbonCredits, goodwillBalance, xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, isInitialized]);
 
   // Derived Level (1 Level per 1000 XP)
   const level = Math.floor(xp / 1000) + 1;
+  const totalScore = parseFloat(((esgScores.environmental + esgScores.social + esgScores.governance) / 3).toFixed(1));
 
   // Actions
   const awardXp = (amount: number) => {
@@ -204,6 +232,37 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!collectedCards.includes(cardId)) {
           setCollectedCards(prev => [...prev, cardId]);
       }
+  };
+
+  const updateCarbonData = (data: Partial<CarbonData>) => {
+      setCarbonData(prev => ({ ...prev, ...data, lastUpdated: Date.now() }));
+  };
+
+  const checkBadges = (): Badge[] => {
+      const newlyUnlocked: Badge[] = [];
+      const updatedBadges = badges.map(badge => {
+          if (badge.isUnlocked) return badge;
+
+          let unlocked = false;
+          // Badge Logic Engine
+          if (badge.condition === 'Score>90' && totalScore > 90) unlocked = true;
+          if (badge.condition === 'Scope1<1000' && carbonData.scope1 < 1000) unlocked = true;
+          if (badge.condition === 'GWC>5000' && goodwillBalance > 5000) unlocked = true;
+
+          if (unlocked) {
+              const newBadge = { ...badge, isUnlocked: true, unlockedAt: Date.now() };
+              newlyUnlocked.push(newBadge);
+              awardXp(500); // 500 XP for Badge
+              addAuditLog('Achievement Unlocked', `Unlocked Badge: ${badge.name}`);
+              return newBadge;
+          }
+          return badge;
+      });
+
+      if (newlyUnlocked.length > 0) {
+          setBadges(updatedBadges);
+      }
+      return newlyUnlocked;
   };
 
   // --- Quest Logic ---
@@ -279,17 +338,15 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     window.location.reload();
   };
 
-  // Derived State
-  const totalScore = parseFloat(((esgScores.environmental + esgScores.social + esgScores.governance) / 3).toFixed(1));
-
   return (
     <CompanyContext.Provider value={{
       companyName, setCompanyName, userName, setUserName, userRole, setUserRole,
       budget, setBudget, updateBudget, carbonCredits, setCarbonCredits, updateCarbonCredits,
       goodwillBalance, updateGoodwillBalance,
-      xp, level, collectedCards, awardXp, unlockCard,
+      xp, level, collectedCards, awardXp, unlockCard, badges, checkBadges,
       quests, todos, completeQuest, updateQuestStatus, addTodo, toggleTodo, deleteTodo,
       esgScores, updateEsgScore, totalScore,
+      carbonData, updateCarbonData,
       resetData, customWidgets, addCustomWidget, removeCustomWidget, auditLogs, addAuditLog
     }}>
       {children}

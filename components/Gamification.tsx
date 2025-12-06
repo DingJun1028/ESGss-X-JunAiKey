@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Language } from '../types';
-import { Trophy, Medal, Star, Flame, Leaf, Lock, Search } from 'lucide-react';
+import { Trophy, Medal, Star, Flame, Leaf, Lock, Search, ShieldCheck, Database, Coins, Award } from 'lucide-react';
 import { useCompany } from './providers/CompanyProvider';
 import { ESG_CARDS } from '../constants';
 
@@ -11,7 +11,7 @@ interface GamificationProps {
 
 export const Gamification: React.FC<GamificationProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
-  const { xp, level, collectedCards } = useCompany();
+  const { xp, level, collectedCards, badges } = useCompany();
 
   // Mock Leaders
   const leaders = [
@@ -27,6 +27,17 @@ export const Gamification: React.FC<GamificationProps> = ({ language }) => {
           case 'Epic': return 'border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)] bg-gradient-to-b from-purple-500/20 to-transparent';
           case 'Rare': return 'border-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.3)] bg-gradient-to-b from-blue-500/20 to-transparent';
           default: return 'border-gray-600 bg-white/5';
+      }
+  };
+
+  const getBadgeIcon = (iconName: string) => {
+      switch(iconName) {
+          case 'Leaf': return Leaf;
+          case 'Database': return Database;
+          case 'Award': return Award;
+          case 'ShieldCheck': return ShieldCheck;
+          case 'Coins': return Coins;
+          default: return Star;
       }
   };
 
@@ -52,9 +63,32 @@ export const Gamification: React.FC<GamificationProps> = ({ language }) => {
                     <div className="text-2xl font-bold text-celestial-emerald">{xp.toLocaleString()}</div>
                 </div>
                 <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/10">
-                    <div className="text-xs text-gray-400 uppercase tracking-wider">Cards</div>
-                    <div className="text-2xl font-bold text-celestial-purple">{collectedCards.length}/{ESG_CARDS.length}</div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wider">Badges</div>
+                    <div className="text-2xl font-bold text-celestial-gold">{badges.filter(b => b.isUnlocked).length}/{badges.length}</div>
                 </div>
+            </div>
+        </div>
+
+        {/* Badges Section (New) */}
+        <div className="glass-panel p-6 rounded-2xl border border-white/10">
+            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <Medal className="w-5 h-5 text-celestial-gold" />
+                {isZh ? '成就徽章' : 'Achievement Badges'}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {badges.map(badge => {
+                    const Icon = getBadgeIcon(badge.icon);
+                    return (
+                        <div key={badge.id} className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${badge.isUnlocked ? 'bg-white/10 border-celestial-gold/50 shadow-[0_0_15px_rgba(251,191,36,0.1)]' : 'bg-white/5 border-white/5 opacity-50 grayscale'}`}>
+                            <div className={`p-3 rounded-full mb-3 ${badge.isUnlocked ? 'bg-celestial-gold/20 text-celestial-gold' : 'bg-gray-700 text-gray-500'}`}>
+                                <Icon className="w-6 h-6" />
+                            </div>
+                            <div className="font-bold text-sm text-white mb-1">{badge.name}</div>
+                            <div className="text-[10px] text-gray-400 leading-tight">{badge.description}</div>
+                            {!badge.isUnlocked && <Lock className="w-3 h-3 text-gray-600 mt-2" />}
+                        </div>
+                    );
+                })}
             </div>
         </div>
 

@@ -84,6 +84,31 @@ export interface EsgCard {
 }
 
 /**
+ * Achievement Badge Definition (New)
+ */
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // Lucide icon name or image url
+  condition: string;
+  isUnlocked: boolean;
+  unlockedAt?: number;
+}
+
+/**
+ * Carbon Calculation Data (New)
+ */
+export interface CarbonData {
+  fuelConsumption: number; // Liters
+  electricityConsumption: number; // kWh
+  scope1: number; // tCO2e
+  scope2: number; // tCO2e
+  scope3: number; // tCO2e (Manual entry for now)
+  lastUpdated: number;
+}
+
+/**
  * Quest & Task Definitions for Gamification (NEW)
  */
 export type QuestRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';

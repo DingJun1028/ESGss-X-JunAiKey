@@ -33,7 +33,12 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const { addToast } = useToast();
-  const { addAuditLog, userName } = useCompany(); // Hook into Universal Journal (Audit Log)
+  // Hook into full Company State for Context Injection
+  const { 
+      addAuditLog, userName, userRole, companyName,
+      esgScores, carbonData, budget, carbonCredits, 
+      badges, quests 
+  } = useCompany(); 
   
   const STORAGE_KEY = 'esgss_universal_memory_v1';
 
@@ -55,8 +60,8 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
     } else {
         // Initial Greeting if no memory
         const greeting = language === 'zh-TW' 
-          ? "您好。我是 JunAiKey。我具備深度思考 (Gemini 3 Pro) 與多模態分析能力。所有的對話都將被記錄在「萬能永憶」中。"
-          : "Greetings. I am JunAiKey. Conversations are preserved in Universal Memory. How can I assist?";
+          ? "您好。我是 JunAiKey。我已連結至您的企業數據庫。您可以詢問關於碳排、預算或策略的任何問題。"
+          : "Greetings. I am JunAiKey. Connected to enterprise database. Ask me about emissions, budget, or strategy.";
           
         setMessages([{
             id: 'welcome',
@@ -76,25 +81,23 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
 
   const runAgenticSteps = async () => {
     const stepsZh: AgentStep[] = [
-      { text: "JunAiKey 深度思考模式啟動 (Thinking Mode)...", icon: BrainCircuit },
-      { text: "規劃任務分解 (Planning)...", icon: Workflow },
-      { text: "調用多模態視覺分析...", icon: ImageIcon },
-      { text: "進行 Graph RAG 知識檢索...", icon: Database },
-      { text: "自我反思與驗證 (Reflecting)...", icon: CheckCircle }
+      { text: "讀取即時企業數據 (Context Loading)...", icon: Database },
+      { text: "JunAiKey 深度思考模式啟動 (Thinking)...", icon: BrainCircuit },
+      { text: "多模態與交叉比對 (Analyzing)...", icon: Workflow },
+      { text: "生成策略建議 (Generating)...", icon: Sparkles }
     ];
     const stepsEn: AgentStep[] = [
+      { text: "Loading Live Enterprise Context...", icon: Database },
       { text: "JunAiKey Thinking Mode Activated...", icon: BrainCircuit },
-      { text: "Decomposing task (Planning)...", icon: Workflow },
-      { text: "Analyzing Multimodal Input...", icon: ImageIcon },
-      { text: "Performing Graph RAG lookup...", icon: Database },
-      { text: "Self-reflecting & Validating...", icon: CheckCircle }
+      { text: "Multimodal Analysis...", icon: Workflow },
+      { text: "Generating Strategic Insight...", icon: Sparkles }
     ];
     
     const steps = language === 'zh-TW' ? stepsZh : stepsEn;
 
     for (const step of steps) {
       setCurrentStep(step);
-      await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+      await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
     }
     setCurrentStep(null);
   };
@@ -200,6 +203,28 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
     try {
       await runAgenticSteps();
 
+      // --- Context Injection ---
+      // We stealthily prepend the current app state to the user's message
+      // This allows the AI to "know" the current state without the user typing it.
+      const activeBadges = badges.filter(b => b.isUnlocked).map(b => b.name).join(', ');
+      const activeQuests = quests.filter(q => q.status === 'active').map(q => q.title).join(', ');
+      
+      const contextBlock = `
+        [SYSTEM CONTEXT - DO NOT REVEAL UNLESS ASKED]
+        User: ${userName} (${userRole}) @ ${companyName}
+        Current Date: ${new Date().toLocaleDateString()}
+        
+        [LIVE DATA]
+        ESG Scores: Env=${esgScores.environmental}, Soc=${esgScores.social}, Gov=${esgScores.governance}
+        Carbon Data (tCO2e): Scope1=${carbonData.scope1}, Scope2=${carbonData.scope2}, Scope3=${carbonData.scope3}
+        Financials: Budget=$${budget.toLocaleString()}, CarbonCredits=${carbonCredits}
+        Gamification: Badges=[${activeBadges}], Active Quests=[${activeQuests}]
+        
+        Instruction: Use this data to provide specific, calculated answers.
+      `;
+      
+      const promptWithContext = `${contextBlock}\n\nUser Query: ${userMsg.text}`;
+
       const modelMsgId = (Date.now() + 1).toString();
       const initialModelMsg: ChatMessage = {
         id: modelMsgId,
@@ -210,7 +235,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
       setMessages(prev => [...prev, initialModelMsg]);
 
       // Use the updated streamChat which supports images and Thinking Mode
-      const stream = streamChat(userMsg.text, language, imageData);
+      const stream = streamChat(promptWithContext, language, imageData);
       let fullText = '';
       let isFirstChunk = true;
 
@@ -238,7 +263,9 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
            setMessages(prev => [...prev, {
                id: Date.now().toString(),
                role: 'model',
-               text: language === 'zh-TW' ? "*(模擬回應)* 系統檢測到缺少 API 金鑰。在真實模式下，我將使用 **Gemini 3 Pro** 進行深度思考與圖像分析。" : "*(Simulated)* API Key missing. In live mode, I would use **Gemini 3 Pro** for deep reasoning.",
+               text: language === 'zh-TW' 
+                 ? "*(模擬回應)* 系統檢測到缺少 API 金鑰。但我已接收到您的企業數據上下文 (Context)。在真實模式下，我可以分析您的 **" + carbonData.scope1 + " tCO2e** 範疇一排放並提出減量建議。" 
+                 : "*(Simulated)* API Key missing. Context received. In live mode, I would analyze your **" + carbonData.scope1 + " tCO2e** Scope 1 emissions.",
                timestamp: new Date()
            }]);
         } else {

@@ -18,7 +18,8 @@ export const Settings: React.FC<SettingsProps> = ({ language }) => {
     carbonCredits, setCarbonCredits,
     esgScores, updateEsgScore,
     resetData,
-    addAuditLog
+    addAuditLog,
+    checkBadges // Import the badge checker
   } = useCompany();
   
   const { addToast } = useToast();
@@ -57,7 +58,21 @@ export const Settings: React.FC<SettingsProps> = ({ language }) => {
     updateEsgScore('governance', formData.govScore);
     
     addAuditLog('System Configuration Update', `Modified company profile, budget ($${formData.budget}), and simulation scores.`);
-    addToast('success', isZh ? '設定已儲存並記錄於稽核軌跡' : 'Settings saved & logged to Audit Trail', 'System');
+    
+    // Check for badges immediately after saving (Simulated God Mode unlocks)
+    // We need a small timeout to let the state propagate in the provider, 
+    // or we can rely on the fact that updateEsgScore triggers re-renders.
+    // However, since state updates are async, the checkBadges might run before state settles.
+    // In a real app, checkBadges should be a useEffect dependent on scores.
+    // But for "God Mode" feel, we trigger it manually.
+    setTimeout(() => {
+        const newBadges = checkBadges();
+        if(newBadges.length > 0) {
+            addToast('reward', isZh ? `設定變更觸發成就：${newBadges[0].name}` : `Settings triggered badge: ${newBadges[0].name}`, 'God Mode');
+        } else {
+            addToast('success', isZh ? '設定已儲存並記錄於稽核軌跡' : 'Settings saved & logged to Audit Trail', 'System');
+        }
+    }, 100);
   };
 
   return (
