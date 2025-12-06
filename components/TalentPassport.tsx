@@ -1,0 +1,87 @@
+
+import React, { useState } from 'react';
+import { OmniEsgCell } from './OmniEsgCell';
+import { Language } from '../types';
+import { UserCheck, Award, Star, Fingerprint, BrainCircuit } from 'lucide-react';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
+
+interface TalentPassportProps {
+  language: Language;
+}
+
+export const TalentPassport: React.FC<TalentPassportProps> = ({ language }) => {
+  const isZh = language === 'zh-TW';
+  const [activeTab, setActiveTab] = useState<'skills' | 'certs'>('skills');
+
+  // Mock Data for Radar Chart
+  const skillData = [
+    { subject: isZh ? '碳管理' : 'Carbon Mgmt', A: 120, B: 110, fullMark: 150 },
+    { subject: isZh ? '法規遵循' : 'Compliance', A: 98, B: 130, fullMark: 150 },
+    { subject: isZh ? '數據分析' : 'Data Analytics', A: 86, B: 130, fullMark: 150 },
+    { subject: isZh ? '循環經濟' : 'Circular Eco', A: 99, B: 100, fullMark: 150 },
+    { subject: isZh ? '社會影響' : 'Social Impact', A: 85, B: 90, fullMark: 150 },
+    { subject: isZh ? '綠色金融' : 'Green Finance', A: 65, B: 85, fullMark: 150 },
+  ];
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+             {isZh ? '人才護照' : 'Talent Passport'}
+             <Fingerprint className="w-6 h-6 text-celestial-emerald" />
+          </h2>
+          <p className="text-gray-400">{isZh ? '區塊鏈驗證技能與職涯星系' : 'Blockchain Verified Skills & Career Galaxy'}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Profile Card */}
+        <div className="glass-panel p-6 rounded-2xl flex flex-col items-center text-center space-y-4">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-celestial-emerald to-celestial-blue p-1">
+                <img src="https://picsum.photos/200/200?random=8" alt="User" className="w-full h-full rounded-full border-4 border-slate-900 object-cover" />
+            </div>
+            <div>
+                <h3 className="text-xl font-bold text-white">DingJun Hong</h3>
+                <p className="text-sm text-celestial-purple">Chief Sustainability Officer</p>
+            </div>
+            <div className="flex gap-2">
+                <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">Level 15</span>
+                <span className="px-3 py-1 rounded-full bg-celestial-gold/10 border border-celestial-gold/30 text-xs text-celestial-gold flex items-center gap-1"><Star className="w-3 h-3 fill-current"/> Top 1%</span>
+            </div>
+            
+            <div className="w-full pt-6 border-t border-white/10 text-left space-y-3">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{isZh ? '證書錢包' : 'Certificate Wallet'}</h4>
+                <OmniEsgCell mode="list" label="ISO 14064 Lead Verifier" value="Verified" icon={Award} color="emerald" verified={true} dataLink="blockchain" />
+                <OmniEsgCell mode="list" label="CFA ESG Investing" value="Verified" icon={Award} color="gold" verified={true} dataLink="blockchain" />
+                <OmniEsgCell mode="list" label="GRI Certified Pro" value="Pending" icon={Award} color="slate" verified={false} />
+            </div>
+        </div>
+
+        {/* Skill Galaxy Chart */}
+        <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 relative">
+            <div className="absolute top-6 right-6">
+                <div className="flex items-center gap-2 text-xs text-celestial-purple bg-celestial-purple/10 px-3 py-1.5 rounded-full border border-celestial-purple/20">
+                    <BrainCircuit className="w-3 h-3" />
+                    {isZh ? 'AI 建議學習路徑' : 'AI Learning Path'}
+                </div>
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-6">{isZh ? '技能星系 (Skill Galaxy)' : 'Skill Galaxy'}</h3>
+            
+            <div className="h-[400px] w-full" style={{ height: 400 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
+                        <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
+                        <Radar name={isZh ? "我的技能" : "My Skills"} dataKey="A" stroke="#10b981" strokeWidth={2} fill="#10b981" fillOpacity={0.3} />
+                        <Radar name={isZh ? "職位要求" : "Role Requirement"} dataKey="B" stroke="#8b5cf6" strokeWidth={2} fill="#8b5cf6" fillOpacity={0.1} />
+                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    </RadarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+};

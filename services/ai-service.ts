@@ -38,17 +38,18 @@ export const fileToGenerativePart = async (file: File): Promise<{ inlineData: { 
  */
 const getSystemPrompt = (language: Language, mode: 'chat' | 'analyst' | 'writer' | 'forecaster' = 'chat') => {
     const baseIdentity = language === 'zh-TW' 
-        ? `身份設定：您是 "ESG Sunshine - Celestial Nexus v12" 平台的【Intelligence Orchestrator (智慧協作中樞)】。`
-        : `Identity: You are the [Intelligence Orchestrator] for "ESG Sunshine - Celestial Nexus v12".`;
+        ? `身份設定：您是 "ESGss X JunAiKey 善向永續系統" 的核心 AI 引擎【JunAiKey】。`
+        : `Identity: You are [JunAiKey], the core AI engine for "ESGss X JunAiKey Sustainability System".`;
 
     const commonRules = language === 'zh-TW'
-        ? `請主要使用繁體中文回應。使用 Markdown 格式。`
-        : `Response in English. Use Markdown formatting.`;
+        ? `請主要使用繁體中文回應。使用 Markdown 格式。語氣專業、前瞻、具備同理心。`
+        : `Response in English. Use Markdown formatting. Tone: Professional, Forward-looking, Empathetic.`;
 
     switch (mode) {
         case 'writer':
             return `${baseIdentity} Role: Expert ESG Report Writer. You are tasked with writing specific sections of a Sustainability Report following GRI standards. 
             Tone: Professional, Corporate, Transparent, and Impactful. 
+            Adhere strictly to the templates and examples provided in the prompt.
             Do NOT make up false data if not provided; use placeholders like [DATA] if needed.
             ${commonRules}`;
         case 'analyst':
@@ -95,7 +96,6 @@ export const streamChat = async function* (
       config: {
         systemInstruction: systemPrompt,
         thinkingConfig: { thinkingBudget: 32768 }, // Enable Thinking Mode (Max 32k)
-        // maxOutputTokens is intentionally omitted as per thinking mode requirements
       }
     });
 
@@ -109,6 +109,60 @@ export const streamChat = async function* (
     throw error;
   }
 };
+
+/**
+ * Verifies if an uploaded image meets the quest requirement using Vision capabilities.
+ * Returns a JSON object with success status and reason.
+ */
+export const verifyQuestImage = async (
+    questTitle: string, 
+    questDesc: string,
+    imageFile: File, 
+    language: Language = 'en-US'
+): Promise<{ success: boolean; reason: string }> => {
+  if (!ai) {
+      // Fallback for demo without key
+      return { success: true, reason: "Simulated: AI Key missing, assuming success." };
+  }
+  
+  try {
+     const imageData = await fileToGenerativePart(imageFile);
+     
+     const prompt = language === 'zh-TW' 
+        ? `任務目標：${questTitle}。任務描述：${questDesc}。
+           請分析這張圖片是否證明用戶完成了這個任務？
+           請嚴格檢查。例如如果任務是「素食午餐」，圖片必須包含食物且看起來像素食。
+           請務必回傳純 JSON 格式，不要有 markdown code block：
+           {"success": boolean, "reason": "簡短的一句話理由"}。`
+        : `Quest Goal: ${questTitle}. Description: ${questDesc}.
+           Analyze this image to see if it verifies that the user completed this task.
+           Be strict. E.g. if task is "Vegetarian Lunch", image must contain food that looks vegetarian.
+           Return raw JSON only, no markdown:
+           {"success": boolean, "reason": "Short reason in one sentence"}.`;
+
+     const result = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [imageData, { text: prompt }]
+        },
+        config: { 
+            responseMimeType: 'application/json' 
+        }
+     });
+     
+     const text = result.text || '{}';
+     const json = JSON.parse(text);
+     return { 
+         success: json.success === true, 
+         reason: json.reason || (json.success ? "Verification Successful" : "Verification Failed") 
+     };
+
+  } catch(e) {
+      console.error("Vision Verification Error", e);
+      // Fail safely
+      return { success: false, reason: "AI Analysis Failed. Please try again." };
+  }
+}
 
 /**
  * Performs a web search using Google Search Grounding.

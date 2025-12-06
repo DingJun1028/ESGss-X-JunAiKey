@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
   BarChart3, TrendingUp, TrendingDown, Minus, LucideIcon, 
   Activity, BrainCircuit, Rocket, 
-  Infinity, Tag, Loader2, ScanLine, Lock
+  Infinity, Tag, Loader2, ScanLine, Lock, HelpCircle
 } from 'lucide-react';
 import { OmniEsgTrait, OmniEsgDataLink, OmniEsgMode, OmniEsgConfidence, OmniEsgColor, UniversalLabel } from '../types';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
@@ -15,6 +15,7 @@ import { DataLinkIndicator } from './minimal/DataLinkIndicator';
 import { ConfidenceIndicator } from './minimal/ConfidenceIndicator';
 import { QuantumAiTrigger } from './minimal/QuantumAiTrigger';
 import { QuantumValueEditor } from './minimal/QuantumValueEditor';
+import { InsightTooltip } from './minimal/InsightTooltip';
 
 /**
  * Theme Definition
@@ -91,6 +92,7 @@ type OmniEsgCellProps = OmniEsgCellBaseProps & InjectedProxyProps;
  * - Universal Proxy: Telemetry, Circuit Breaking, Adaptation.
  * - 8 Evolutionary Traits: Visualizes data state (Learning, Gap-filling, etc.).
  * - Bi-directional: Supports in-place editing and AI triggering.
+ * - Insight Tooltip: Supports hover/click for beginners.
  */
 const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
   const { 
@@ -100,9 +102,11 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
   } = props;
   
   const { addToast } = useToast();
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
 
   // Resolve Label (Universal Label support)
-  const labelText = typeof label === 'object' ? label?.text : label;
+  const isRichLabel = typeof label === 'object';
+  const labelText = isRichLabel ? (label as UniversalLabel).text : (label as string);
   
   // Merge static traits with adaptive traits (Self-Growth)
   const activeTraits = Array.from(new Set([...traits, ...adaptiveTraits]));
@@ -135,6 +139,17 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
     trackInteraction?.('edit');
     addToast('success', `Value updated to ${newValue}`, 'Universal Data Link');
     // In a real app, this would dispatch an update to the backend or context
+  };
+
+  const handleMouseEnter = () => {
+      if (isRichLabel && (label as UniversalLabel).definition) {
+          setIsTooltipVisible(true);
+          trackInteraction?.('hover');
+      }
+  };
+
+  const handleMouseLeave = () => {
+      setIsTooltipVisible(false);
   };
 
   if (loading) {
@@ -209,9 +224,9 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
       'aria-label': `${labelText || 'Metric'}, value is ${value}`
   } : {};
 
-  // Wrapper Classes - Apply "Evolutionary Glow" if high frequency
+  // Wrapper Classes
   const wrapperClasses = `
-    group relative overflow-hidden transition-all duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-celestial-purple/50
+    group relative overflow-visible transition-all duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-celestial-purple/50
     ${isSeamless ? 'bg-transparent border-none' : `backdrop-blur-xl bg-slate-900/40 border ${isGapFilling ? 'border-dashed border-amber-500/30' : 'border-white/5'} hover:bg-white/5`}
     ${!isSeamless && theme.border}
     ${isSeamless ? '' : 'shadow-lg shadow-black/20 hover:shadow-2xl'}
@@ -220,6 +235,33 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
     ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}
     ${className}
   `;
+
+  const TooltipWrapper = () => (
+      isRichLabel ? <InsightTooltip label={label as UniversalLabel} isVisible={isTooltipVisible} /> : null
+  );
+
+  const LabelWithIcon = () => (
+      <div 
+        className="flex items-center gap-2 relative"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={(e) => {
+            // Mobile toggle
+            if(window.innerWidth < 768 && isRichLabel) {
+                e.stopPropagation();
+                setIsTooltipVisible(!isTooltipVisible);
+            }
+        }}
+      >
+          <span className="text-gray-400 text-sm font-medium tracking-wide border-b border-transparent hover:border-gray-500 hover:text-gray-200 transition-colors cursor-help">
+              {labelText}
+          </span>
+          {isRichLabel && (
+              <HelpCircle className="w-3 h-3 text-gray-600 group-hover:text-celestial-gold transition-colors opacity-50 group-hover:opacity-100" />
+          )}
+          <TooltipWrapper />
+      </div>
+  );
 
   // === MODE: CARD ===
   if (mode === 'card') {
@@ -261,7 +303,7 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
           <div className="flex justify-between items-start">
             <div className="space-y-1.5">
                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm font-medium tracking-wide">{labelText}</span>
+                  <LabelWithIcon />
                   <QuantumAiTrigger onClick={onAiAnalyze} onInternalTrigger={handleInternalAiTrigger} label={labelText} />
                </div>
                
@@ -341,7 +383,7 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
               </div>
               <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-200 group-hover:text-white transition-colors">{labelText}</span>
+                    <LabelWithIcon />
                     <QuantumAiTrigger onClick={onAiAnalyze} onInternalTrigger={handleInternalAiTrigger} label={labelText} />
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs">
@@ -374,7 +416,10 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
       return (
         <div className={`${wrapperClasses} p-4 rounded-xl flex flex-col justify-between h-full`} onClick={onClick} {...interactiveProps}>
             <div className="flex justify-between items-start">
-               <span className="text-xs text-gray-400">{labelText}</span>
+               <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                   <span className="text-xs text-gray-400 cursor-help border-b border-transparent hover:border-gray-500">{labelText}</span>
+                   <TooltipWrapper />
+               </div>
                <QuantumAiTrigger onClick={onAiAnalyze} onInternalTrigger={handleInternalAiTrigger} label={labelText} />
             </div>
             <div className={`text-xl font-bold text-white mt-2 ${theme.text} ${isGapFilling ? 'opacity-80' : ''}`}>{value}</div>

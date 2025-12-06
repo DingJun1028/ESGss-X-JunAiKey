@@ -112,7 +112,7 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
             {/* Main Chart */}
             <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border-white/5 min-h-[400px] flex flex-col min-w-0">
                 <h3 className="text-lg font-semibold text-white mb-6">{isZh ? '排放趨勢 (Emissions Trend)' : 'Emissions Trend'}</h3>
-                <div className="flex-1 w-full min-w-0 min-h-[300px]">
+                <div className="flex-1 w-full min-w-0 min-h-[300px]" style={{ height: 300 }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={EMISSION_DATA}>
                             <defs>

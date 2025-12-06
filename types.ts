@@ -4,6 +4,7 @@
  * Maps directly to the sidebar navigation items.
  */
 export enum View {
+  MY_ESG = 'MY_ESG', // New Homepage
   DASHBOARD = 'DASHBOARD',
   RESEARCH_HUB = 'RESEARCH_HUB', // Maps to Data/Knowledge aspects
   ACADEMY = 'ACADEMY', // Maps to Talent/Learning aspects
@@ -30,7 +31,7 @@ export type Language = 'zh-TW' | 'en-US';
 /**
  * Defines the available types of toast notifications.
  */
-export type ToastType = 'success' | 'error' | 'info' | 'warning';
+export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'reward'; // Added 'reward' type
 
 /**
  * Represents a single toast notification object.
@@ -46,6 +47,64 @@ export interface Toast {
   message: string;
   /** Duration in milliseconds before auto-dismissal. Default is usually 5000ms. */
   duration?: number;
+  /** Optional data for rewards */
+  rewardData?: {
+    xp?: number;
+    coins?: number;
+    card?: EsgCard;
+  };
+}
+
+/**
+ * Represents a secure, immutable audit log entry.
+ */
+export interface AuditLogEntry {
+  id: string;
+  timestamp: number;
+  action: string;
+  user: string;
+  details: string;
+  hash: string; // Simulated blockchain hash
+  verified: boolean;
+}
+
+/**
+ * ESG Knowledge Card Definition
+ */
+export type CardRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
+
+export interface EsgCard {
+  id: string;
+  title: string;
+  description: string;
+  rarity: CardRarity;
+  imageUrl: string; // Placeholder URL
+  knowledgePoint: string; // The educational snippet
+  collectionSet: string; // e.g., "Carbon Set", "Governance Set"
+}
+
+/**
+ * Quest & Task Definitions for Gamification (NEW)
+ */
+export type QuestRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
+export type QuestType = 'Daily' | 'Weekly' | 'Challenge';
+export type QuestRequirement = 'manual' | 'image_upload';
+
+export interface Quest {
+  id: string;
+  title: string;
+  desc: string;
+  type: QuestType;
+  rarity: QuestRarity;
+  xp: number;
+  status: 'active' | 'verifying' | 'completed';
+  requirement: QuestRequirement;
+}
+
+export interface ToDoItem {
+  id: number;
+  text: string;
+  done: boolean;
 }
 
 /**
@@ -97,6 +156,10 @@ export interface UniversalLabel {
   text: string;
   /** Description for AI analysis context */
   description?: string;
+  /** Tooltip Definition for Beginners */
+  definition?: string;
+  /** Calculation Formula if applicable */
+  formula?: string;
 }
 
 /**
@@ -113,7 +176,7 @@ export interface InteractionEvent {
  */
 export interface Metric {
   id: string;
-  label: string;
+  label: string | UniversalLabel; // Updated to allow rich label objects
   value: string;
   /** Percentage change */
   change: number;
@@ -169,4 +232,17 @@ export interface ReportSection {
   template?: string;
   example?: string;
   griStandards?: string;
+}
+
+/**
+ * Types for Custom Dashboard Widgets
+ */
+export type WidgetType = 'kpi_card' | 'chart_area' | 'feed_list' | 'mini_map';
+
+export interface DashboardWidget {
+  id: string;
+  type: WidgetType;
+  title: string;
+  config?: any; // To store specific widget configs (e.g., metric ID)
+  gridSize?: 'small' | 'medium' | 'large' | 'full';
 }

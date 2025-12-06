@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity, BrainCircuit, Search, CheckCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity, BrainCircuit, Search, CheckCircle, Image as ImageIcon, Trash2, Download, Save, FileText, History, Eraser } from 'lucide-react';
 import { ChatMessage, Language } from '../types';
 import { streamChat, fileToGenerativePart } from '../services/ai-service';
 import { useToast } from '../contexts/ToastContext';
+import { useCompany } from './providers/CompanyProvider';
 import { marked } from 'marked';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
@@ -30,33 +31,59 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
   
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { addToast } = useToast();
   
+  const { addToast } = useToast();
+  const { addAuditLog, userName } = useCompany(); // Hook into Universal Journal (Audit Log)
+  
+  const STORAGE_KEY = 'esgss_universal_memory_v1';
+
+  // --- Universal Memory: Load ---
   useEffect(() => {
-    const greeting = language === 'zh-TW' 
-      ? "您好。我是 Intelligence Orchestrator。我具備深度思考 (Gemini 3 Pro) 與多模態分析能力。請問今天需要協助什麼？"
-      : "Greetings. I am your Intelligence Orchestrator, powered by Gemini 3 Pro with deep reasoning and multimodal vision. How can I assist?";
-      
-    if (messages.length === 0) {
-      setMessages([{
-        id: 'welcome',
-        role: 'model',
-        text: greeting,
-        timestamp: new Date()
-      }]);
+    const savedMemory = localStorage.getItem(STORAGE_KEY);
+    if (savedMemory) {
+      try {
+        const parsed = JSON.parse(savedMemory);
+        // Convert string timestamps back to Date objects
+        const hydratedMessages = parsed.map((m: any) => ({
+            ...m,
+            timestamp: new Date(m.timestamp)
+        }));
+        setMessages(hydratedMessages);
+      } catch (e) {
+        console.error("Failed to load Universal Memory", e);
+      }
+    } else {
+        // Initial Greeting if no memory
+        const greeting = language === 'zh-TW' 
+          ? "您好。我是 JunAiKey。我具備深度思考 (Gemini 3 Pro) 與多模態分析能力。所有的對話都將被記錄在「萬能永憶」中。"
+          : "Greetings. I am JunAiKey. Conversations are preserved in Universal Memory. How can I assist?";
+          
+        setMessages([{
+            id: 'welcome',
+            role: 'model',
+            text: greeting,
+            timestamp: new Date()
+        }]);
     }
-  }, [language]);
+  }, []);
+
+  // --- Universal Memory: Save ---
+  useEffect(() => {
+      if (messages.length > 0) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      }
+  }, [messages]);
 
   const runAgenticSteps = async () => {
     const stepsZh: AgentStep[] = [
-      { text: "深度思考模式啟動 (Thinking Mode)...", icon: BrainCircuit },
+      { text: "JunAiKey 深度思考模式啟動 (Thinking Mode)...", icon: BrainCircuit },
       { text: "規劃任務分解 (Planning)...", icon: Workflow },
       { text: "調用多模態視覺分析...", icon: ImageIcon },
       { text: "進行 Graph RAG 知識檢索...", icon: Database },
       { text: "自我反思與驗證 (Reflecting)...", icon: CheckCircle }
     ];
     const stepsEn: AgentStep[] = [
-      { text: "Thinking Mode Activated...", icon: BrainCircuit },
+      { text: "JunAiKey Thinking Mode Activated...", icon: BrainCircuit },
       { text: "Decomposing task (Planning)...", icon: Workflow },
       { text: "Analyzing Multimodal Input...", icon: ImageIcon },
       { text: "Performing Graph RAG lookup...", icon: Database },
@@ -90,6 +117,57 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
     setSelectedImage(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // --- Management Functions ---
+
+  const handleDeleteMessage = (id: string) => {
+      setMessages(prev => prev.filter(msg => msg.id !== id));
+      addToast('info', language === 'zh-TW' ? '訊息已從記憶中刪除' : 'Message deleted from memory', 'Universal Memory');
+  };
+
+  const handleClearAll = () => {
+      if (confirm(language === 'zh-TW' ? '確定要清除所有對話紀錄嗎？' : 'Are you sure you want to clear all history?')) {
+          setMessages([]);
+          localStorage.removeItem(STORAGE_KEY);
+          addToast('success', language === 'zh-TW' ? '萬能永憶已重置' : 'Universal Memory cleared', 'System');
+      }
+  };
+
+  const handleExport = () => {
+      const title = `JunAiKey_Chat_History_${new Date().toISOString().split('T')[0]}.md`;
+      let content = `# JunAiKey Chat History\n\nGenerated: ${new Date().toLocaleString()}\n\n---\n\n`;
+      
+      messages.forEach(msg => {
+          const role = msg.role === 'user' ? (userName || 'User') : 'JunAiKey';
+          const time = new Date(msg.timestamp).toLocaleTimeString();
+          content += `### ${role} [${time}]\n${msg.text}\n\n`;
+      });
+
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = title;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      addToast('success', language === 'zh-TW' ? '對話紀錄已匯出' : 'Chat history exported', 'Export');
+  };
+
+  const handleSaveToJournal = () => {
+      // Summarize last interaction for the journal
+      const lastInteraction = messages.slice(-2);
+      if (lastInteraction.length === 0) return;
+
+      const summary = `AI Session Archived. Last topic: ${lastInteraction[0]?.text?.substring(0, 50)}...`;
+      
+      // Add to Global Audit Log (Universal Journal)
+      addAuditLog('AI Session Archived', summary);
+      
+      addToast('success', language === 'zh-TW' ? '已歸檔至萬能日誌 (Audit Trail)' : 'Archived to Universal Journal', 'Universal Journal');
   };
 
   const handleSend = async () => {
@@ -150,7 +228,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
     } catch (e: any) {
         setIsTyping(false);
         setCurrentStep(null);
-        let errorMsg = language === 'zh-TW' ? "無法連接至 Celestial Nexus。" : "Connection Failed.";
+        let errorMsg = language === 'zh-TW' ? "無法連接至 JunAiKey。" : "Connection Failed.";
         
         if (e.message === "MISSING_API_KEY") {
            errorMsg = language === 'zh-TW' ? "請設定 API_KEY 以啟用 Gemini 3 Pro。" : "Please set API_KEY for Gemini 3 Pro.";
@@ -198,22 +276,36 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-[450px] h-[600px] max-h-[80vh] flex flex-col rounded-2xl glass-panel overflow-hidden animate-fade-in border-celestial-glassBorder shadow-2xl">
+        <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-[500px] h-[650px] max-h-[85vh] flex flex-col rounded-2xl glass-panel overflow-hidden animate-fade-in border-celestial-glassBorder shadow-2xl">
           
-          <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center backdrop-blur-xl shrink-0">
+          <div className="p-3 bg-white/5 border-b border-white/10 flex justify-between items-center backdrop-blur-xl shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-celestial-emerald animate-ping" />
-              <h3 className="font-semibold text-white tracking-wide flex items-center gap-2">
+              <h3 className="font-semibold text-white tracking-wide flex items-center gap-2 text-sm">
                   <Bot className="w-4 h-4 text-celestial-purple"/>
-                  Intelligence Orchestrator
+                  JunAiKey <span className="text-[10px] opacity-50 font-normal hidden sm:inline">| Universal Memory</span>
               </h3>
             </div>
-            <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
-              <X className="w-5 h-5 text-gray-400" />
-            </button>
+            
+            {/* Toolbar */}
+            <div className="flex items-center gap-1">
+                <button onClick={handleSaveToJournal} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-celestial-gold transition-colors" title={language === 'zh-TW' ? "歸檔至萬能日誌" : "Archive to Journal"}>
+                    <Save className="w-4 h-4" />
+                </button>
+                <button onClick={handleExport} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-emerald-400 transition-colors" title={language === 'zh-TW' ? "匯出對話" : "Export Chat"}>
+                    <Download className="w-4 h-4" />
+                </button>
+                <button onClick={handleClearAll} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-red-400 transition-colors" title={language === 'zh-TW' ? "清除所有紀錄" : "Clear All"}>
+                    <Eraser className="w-4 h-4" />
+                </button>
+                <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
+                <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 transition-colors">
+                    <X className="w-5 h-5" />
+                </button>
+            </div>
           </div>
 
-          <div className="flex-1 overflow-hidden p-0">
+          <div className="flex-1 overflow-hidden p-0 relative bg-slate-900/50">
              <Virtuoso
                 ref={virtuosoRef}
                 style={{ height: '100%' }}
@@ -221,10 +313,27 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
                 followOutput="auto"
                 initialTopMostItemIndex={messages.length - 1}
                 itemContent={(index, msg) => (
-                  <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} px-4 py-2`}>
-                    <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${msg.role === 'user' ? 'bg-celestial-purple/80 text-white rounded-br-none' : 'bg-slate-800/80 text-gray-200 border border-white/10 rounded-bl-none'}`}>
-                      {msg.role === 'model' && <Sparkles className="w-3 h-3 text-celestial-gold mb-1 inline-block mr-1" />}
+                  <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} px-4 py-3 group relative`}>
+                    
+                    {/* Delete Message Button (Hover) */}
+                    <button 
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        className={`absolute top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-500 hover:text-red-400 ${msg.role === 'user' ? 'left-0' : 'right-0'}`}
+                        title="Delete message"
+                    >
+                        <Trash2 className="w-3 h-3" />
+                    </button>
+
+                    <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-lg ${msg.role === 'user' ? 'bg-celestial-purple/80 text-white rounded-br-none backdrop-blur-md' : 'bg-slate-800/90 text-gray-200 border border-white/10 rounded-bl-none backdrop-blur-md'}`}>
+                      {msg.role === 'model' && (
+                          <div className="flex items-center gap-1 mb-1 opacity-50 text-[10px] font-bold uppercase tracking-wider text-celestial-gold">
+                              <Sparkles className="w-3 h-3" /> JunAiKey
+                          </div>
+                      )}
                       {renderMessageContent(msg.text)}
+                      <div className="text-[9px] opacity-40 text-right mt-1 font-mono">
+                          {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -235,7 +344,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
                         <div className="bg-slate-800/50 p-3 rounded-2xl rounded-bl-none border border-white/5 flex flex-col gap-2 min-w-[200px]">
                           <div className="flex items-center gap-2">
                             <BrainCircuit className="w-4 h-4 text-celestial-purple animate-pulse" />
-                            <span className="text-xs font-semibold text-celestial-purple">Gemini 3 Pro Thinking...</span>
+                            <span className="text-xs font-semibold text-celestial-purple">JunAiKey Thinking...</span>
                           </div>
                           {currentStep && (
                              <div className="flex items-center gap-2 text-xs text-gray-300 animate-pulse pl-6 border-l border-white/10">
@@ -245,7 +354,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
                           )}
                         </div>
                       </div>
-                    ) : null
+                    ) : <div className="h-4" />
                   )
                 }}
              />
@@ -253,7 +362,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
 
           {/* Image Preview Area */}
           {imagePreview && (
-            <div className="px-4 py-2 bg-slate-900/80 border-t border-white/10 flex items-center justify-between">
+            <div className="px-4 py-2 bg-slate-900/80 border-t border-white/10 flex items-center justify-between backdrop-blur-md">
                 <div className="flex items-center gap-2">
                     <img src={imagePreview} alt="Upload Preview" className="h-12 w-12 object-cover rounded-lg border border-white/20" />
                     <span className="text-xs text-gray-400 truncate max-w-[150px]">{selectedImage?.name}</span>
@@ -264,7 +373,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
             </div>
           )}
 
-          <div className="p-4 bg-white/5 border-t border-white/10 shrink-0">
+          <div className="p-4 bg-white/5 border-t border-white/10 shrink-0 backdrop-blur-xl">
             <div className="relative">
               <textarea
                 ref={textareaRef}
@@ -275,9 +384,9 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
                     e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={language === 'zh-TW' ? "輸入指令或上傳圖片..." : "Enter command or upload image..."}
+                placeholder={language === 'zh-TW' ? "輸入指令或上傳圖片 (紀錄將保存於萬能永憶)..." : "Enter command or upload image (Saved to Universal Memory)..."}
                 rows={1}
-                className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-4 pr-20 py-3 text-sm text-white focus:outline-none focus:border-celestial-purple/50 focus:ring-1 focus:ring-celestial-purple/50 placeholder-gray-500 resize-none block custom-scrollbar"
+                className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-4 pr-20 py-3 text-sm text-white focus:outline-none focus:border-celestial-purple/50 focus:ring-1 focus:ring-celestial-purple/50 placeholder-gray-500 resize-none block custom-scrollbar transition-all"
                 style={{ minHeight: '46px', maxHeight: '120px' }}
               />
               
@@ -306,9 +415,10 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
               </button>
             </div>
             <div className="flex justify-between items-center mt-2 px-1">
-                 <div className="flex gap-2 text-[10px] text-gray-500">
+                 <div className="flex gap-3 text-[10px] text-gray-500">
                      <span className="flex items-center gap-1"><BrainCircuit className="w-3 h-3"/> Thinking Mode</span>
                      <span className="flex items-center gap-1"><ImageIcon className="w-3 h-3"/> Vision</span>
+                     <span className="flex items-center gap-1 text-emerald-500/70"><History className="w-3 h-3"/> Universal Memory</span>
                  </div>
             </div>
           </div>

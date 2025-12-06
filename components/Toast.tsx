@@ -1,13 +1,15 @@
+
 import React, { useEffect } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { Toast as ToastType } from '../types';
-import { X, CheckCircle, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, AlertCircle, Info, Star } from 'lucide-react';
 
 const icons = {
   success: <CheckCircle className="w-5 h-5 text-emerald-400" />,
   error: <AlertCircle className="w-5 h-5 text-red-400" />,
   warning: <AlertTriangle className="w-5 h-5 text-amber-400" />,
   info: <Info className="w-5 h-5 text-blue-400" />,
+  reward: <Star className="w-5 h-5 text-yellow-400 fill-current animate-spin-slow" />,
 };
 
 const styles = {
@@ -15,6 +17,7 @@ const styles = {
   error: 'border-red-500/30 bg-red-500/10 shadow-red-500/10',
   warning: 'border-amber-500/30 bg-amber-500/10 shadow-amber-500/10',
   info: 'border-blue-500/30 bg-blue-500/10 shadow-blue-500/10',
+  reward: 'border-yellow-500/50 bg-yellow-500/20 shadow-yellow-500/30 ring-1 ring-yellow-400/50',
 };
 
 const ToastItem: React.FC<{ toast: ToastType }> = ({ toast }) => {
@@ -35,7 +38,7 @@ const ToastItem: React.FC<{ toast: ToastType }> = ({ toast }) => {
         </div>
         <div className="flex-1 w-0">
           {toast.title && (
-            <p className="text-sm font-semibold text-white mb-1">
+            <p className={`text-sm font-semibold mb-1 ${toast.type === 'reward' ? 'text-yellow-200' : 'text-white'}`}>
               {toast.title}
             </p>
           )}

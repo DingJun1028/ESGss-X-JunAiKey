@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Sun, Lock, User, ShieldCheck, ToggleLeft, ToggleRight, ArrowRight } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -12,6 +13,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToast();
 
   const isZh = language === 'zh-TW';
 
@@ -22,8 +24,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
     // Simulating Supabase Auth Delay
     setTimeout(() => {
       setLoading(false);
+      const welcomeTitle = isZh ? '登入成功' : 'Login Successful';
+      const welcomeMsg = isZh ? '歡迎回來，首席永續官 (CSO)。' : 'Welcome back, Chief Sustainability Officer.';
+      addToast('success', welcomeMsg, welcomeTitle);
       onLogin();
     }, 1500);
+  };
+
+  const toggleDevMode = () => {
+      const newState = !isDevMode;
+      setIsDevMode(newState);
+      if (newState) {
+          addToast('warning', isZh ? '開發者模式已啟用：略過驗證' : 'Dev Mode Enabled: Auth Bypassed', 'System');
+      }
   };
 
   return (
@@ -43,11 +56,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
                <Sun className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight text-center flex flex-col gap-1">
-              <span>ESG Sunshine</span>
-              <span className="text-xl text-celestial-emerald tracking-wider">善向永續</span>
+              <span>ESGss</span>
+              <span className="text-xl text-celestial-emerald tracking-wider">善向永續系統</span>
             </h1>
             <p className="text-xs text-celestial-gold mt-3 uppercase tracking-widest text-center border-t border-white/10 pt-3 w-full">
-              JunAiKey System
+              Powered by JunAiKey
             </p>
           </div>
 
@@ -114,7 +127,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
               {isZh ? "安全連接: Supabase Auth" : "Secured by Supabase Auth"}
             </span>
             <button 
-              onClick={() => setIsDevMode(!isDevMode)}
+              onClick={toggleDevMode}
               className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
             >
               {isDevMode ? <ToggleRight className="w-8 h-8 text-celestial-emerald" /> : <ToggleLeft className="w-8 h-8" />}

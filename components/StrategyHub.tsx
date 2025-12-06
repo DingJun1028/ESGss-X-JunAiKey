@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { AlertTriangle, Users, TrendingUp, Globe, ShieldAlert, Target, Zap, ArrowRight, Layers, BrainCircuit, Sparkles } from 'lucide-react';
+import { AlertTriangle, Users, TrendingUp, Globe, ShieldAlert, Target, ArrowRight, Layers, BrainCircuit, Sparkles } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { useCompany } from './providers/CompanyProvider';
 
 interface StrategyHubProps {
   language: Language;
@@ -13,6 +15,7 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
   const { addToast } = useToast();
+  const { esgScores, carbonCredits } = useCompany();
   const [isLoading, setIsLoading] = useState(true);
 
   // Simulate Data Fetching
@@ -27,6 +30,42 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
      addToast('info', 'AI Strategy Agent analyzing heatmaps...', 'Neural Link');
   };
 
+  // Dynamic Risk Calculation Logic
+  // Using God Mode inputs to simulate real analysis
+  const calculateRisks = () => {
+      // 1. Carbon Pricing Risk (Depends on Carbon Credits)
+      // Low credits (< 1000) = High Risk
+      const carbonRiskLevel = carbonCredits < 1000 ? 'critical' : carbonCredits < 5000 ? 'high' : 'medium';
+      
+      // 2. Reputation Risk (Depends on Social Score)
+      // Low Social Score (< 70) = High Risk
+      const reputationRiskLevel = esgScores.social < 60 ? 'critical' : esgScores.social < 80 ? 'medium' : 'low';
+
+      // 3. Compliance Risk (Depends on Governance Score)
+      const complianceRiskLevel = esgScores.governance < 60 ? 'critical' : esgScores.governance < 85 ? 'medium' : 'low';
+
+      return [
+        { name: isZh ? '碳定價衝擊' : 'Carbon Pricing', level: carbonRiskLevel, probability: 'high' },
+        { name: isZh ? '商譽風險' : 'Reputation', level: reputationRiskLevel, probability: 'medium' },
+        { name: isZh ? '合規風險' : 'Compliance', level: complianceRiskLevel, probability: 'high' },
+        { name: isZh ? '極端氣候事件' : 'Extreme Weather', level: 'high', probability: 'medium' }, // External factor, kept constant
+        { name: isZh ? '供應鏈中斷' : 'Supply Chain', level: 'medium', probability: 'high' },
+        { name: isZh ? '人才流失' : 'Talent Loss', level: esgScores.social < 70 ? 'high' : 'low', probability: 'low' },
+      ];
+  };
+
+  const risks = calculateRisks();
+
+  const getHeatmapColor = (level: string) => {
+    switch (level) {
+      case 'critical': return 'bg-red-500/80 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse';
+      case 'high': return 'bg-amber-500/80 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]';
+      case 'medium': return 'bg-yellow-500/80 border-yellow-400';
+      case 'low': return 'bg-emerald-500/80 border-emerald-400';
+      default: return 'bg-gray-500';
+    }
+  };
+
   // Mock Data demonstrating the "8 Evolutionary Traits"
   const metrics = [
     {
@@ -37,18 +76,18 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
       color: 'gold' as const,
       icon: AlertTriangle,
       confidence: 'medium' as const,
-      traits: ['gap-filling', 'optimization'], // 缺口補齊 + 萬能優化
+      traits: ['gap-filling', 'optimization'], 
       dataLink: 'ai' as const
     },
     {
       label: isZh ? '利害關係人議合' : 'Stakeholder Engagement',
-      value: '92/100',
+      value: `${esgScores.social}/100`, // Linked to real data
       subValue: isZh ? '持續學習中...' : 'Self-Learning...',
       trend: { value: 5.4, direction: 'up' as const },
       color: 'purple' as const,
       icon: Users,
       confidence: 'high' as const,
-      traits: ['learning', 'evolution'], // 自學成長 + 無限進化
+      traits: ['learning', 'evolution'], 
       tags: ['Social', 'Gov']
     },
     {
@@ -60,7 +99,7 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
       icon: TrendingUp,
       confidence: 'high' as const,
       verified: true,
-      traits: ['performance', 'tagging', 'bridging'], // 性能晉級 + 萬能標籤 + 承上啟下
+      traits: ['performance', 'tagging', 'bridging'], 
       tags: ['EU Taxonomy', 'KPI']
     },
     {
@@ -71,30 +110,10 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
       color: 'blue' as const,
       icon: ShieldAlert,
       confidence: 'high' as const,
-      traits: ['seamless'], // 天衣無縫
+      traits: ['seamless'], 
       dataLink: 'live' as const
     }
   ];
-
-  // Mock Data for Heatmap
-  const risks = [
-    { name: isZh ? '碳定價衝擊' : 'Carbon Pricing', level: 'high', probability: 'high' },
-    { name: isZh ? '極端氣候事件' : 'Extreme Weather', level: 'critical', probability: 'medium' },
-    { name: isZh ? '供應鏈中斷' : 'Supply Chain', level: 'medium', probability: 'high' },
-    { name: isZh ? '商譽風險' : 'Reputation', level: 'medium', probability: 'medium' },
-    { name: isZh ? '技術轉型' : 'Tech Transition', level: 'low', probability: 'high' },
-    { name: isZh ? '人才流失' : 'Talent Loss', level: 'low', probability: 'low' },
-  ];
-
-  const getHeatmapColor = (level: string) => {
-    switch (level) {
-      case 'critical': return 'bg-red-500/80 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]';
-      case 'high': return 'bg-amber-500/80 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]';
-      case 'medium': return 'bg-yellow-500/80 border-yellow-400';
-      case 'low': return 'bg-emerald-500/80 border-emerald-400';
-      default: return 'bg-gray-500';
-    }
-  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -116,7 +135,7 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
         </div>
       </div>
 
-      {/* Omni-ESG-Cells Grid (Showcasing 8 Traits) */}
+      {/* Omni-ESG-Cells Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading 
           ? Array.from({ length: 4 }).map((_, i) => (
@@ -220,7 +239,7 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
                                     {risk.name}
                                     <Sparkles className="w-3 h-3 text-celestial-gold" />
                                 </div>
-                                <div className="text-[10px] text-gray-400 mb-1">Scenario: RCP 8.5 (Business as Usual)</div>
+                                <div className="text-[10px] text-gray-400 mb-1">Impact: {risk.level.toUpperCase()}</div>
                                 <div className="flex items-center justify-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 py-1 px-2 rounded-full mt-1">
                                     <ShieldAlert className="w-3 h-3" /> Mitigation Active
                                 </div>

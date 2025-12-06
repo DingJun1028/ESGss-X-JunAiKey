@@ -1,0 +1,184 @@
+
+import React, { useState } from 'react';
+import { Language } from '../types';
+import { Coins, ArrowUpRight, ArrowDownLeft, ShoppingBag, Package, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { OmniEsgCell } from './OmniEsgCell';
+import { useCompany } from './providers/CompanyProvider';
+import { useToast } from '../contexts/ToastContext';
+import { ESG_CARDS } from '../constants';
+
+interface GoodwillCoinProps {
+  language: Language;
+}
+
+export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
+  const isZh = language === 'zh-TW';
+  const { goodwillBalance, updateGoodwillBalance, addAuditLog, unlockCard, collectedCards } = useCompany();
+  const { addToast } = useToast();
+  const [isTransacting, setIsTransacting] = useState(false);
+  const [openingPack, setOpeningPack] = useState(false);
+
+  const handleTransaction = (type: 'send' | 'receive') => {
+      setIsTransacting(true);
+      const amount = Math.floor(Math.random() * 50) + 10;
+      
+      setTimeout(() => {
+          if (type === 'send') {
+              if (goodwillBalance < amount) {
+                  addToast('error', isZh ? '餘額不足' : 'Insufficient Balance', 'Transaction Failed');
+              } else {
+                  updateGoodwillBalance(-amount);
+                  addAuditLog('GWC Transaction (Send)', `Sent ${amount} GWC to Peer.`);
+                  addToast('success', isZh ? `已發送 ${amount} GWC` : `Sent ${amount} GWC`, 'Transaction');
+              }
+          } else {
+              updateGoodwillBalance(amount);
+              addAuditLog('GWC Transaction (Receive)', `Received ${amount} GWC reward.`);
+              addToast('success', isZh ? `已接收 ${amount} GWC` : `Received ${amount} GWC`, 'Transaction');
+          }
+          setIsTransacting(false);
+      }, 1000);
+  };
+
+  const handleBuyPack = (cost: number, packName: string) => {
+      if (goodwillBalance < cost) {
+          addToast('error', isZh ? '餘額不足' : 'Insufficient GWC', 'Marketplace');
+          return;
+      }
+
+      setOpeningPack(true);
+      updateGoodwillBalance(-cost);
+      
+      // Simulate Pack Opening Logic
+      setTimeout(() => {
+          // Select a random card that isn't collected yet, or a duplicate
+          const availableCards = ESG_CARDS;
+          const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+          
+          unlockCard(randomCard.id);
+          addAuditLog('Marketplace Purchase', `Bought ${packName} for ${cost} GWC. Unlocked: ${randomCard.title}`);
+          
+          addToast('reward', isZh ? `獲得卡片：${randomCard.title}` : `Card Unlocked: ${randomCard.title}`, 'Marketplace', 5000);
+          setOpeningPack(false);
+      }, 2000);
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+        <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-celestial-gold/10 rounded-xl border border-celestial-gold/20">
+                    <Coins className="w-8 h-8 text-celestial-gold" />
+                </div>
+                <div>
+                    <h2 className="text-3xl font-bold text-white">{isZh ? '善向幣市集' : 'Goodwill Marketplace'}</h2>
+                    <p className="text-gray-400">{isZh ? '兌換 ESG 知識卡片與虛擬資產' : 'Redeem ESG Knowledge Cards & Virtual Assets'}</p>
+                </div>
+            </div>
+            <div className="text-right">
+                <div className="text-sm text-gray-400">{isZh ? '當前餘額' : 'Current Balance'}</div>
+                <div className="text-2xl font-mono text-celestial-gold font-bold">{goodwillBalance.toLocaleString()} GWC</div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Wallet Card */}
+            <div className="md:col-span-1 glass-panel p-8 rounded-3xl bg-gradient-to-br from-celestial-gold/10 to-transparent border border-celestial-gold/30 relative overflow-hidden group flex flex-col justify-between h-[300px]">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-celestial-gold/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                
+                <div>
+                    <div className="text-sm text-celestial-gold font-medium mb-1 tracking-wider uppercase">{isZh ? '總資產' : 'Total Assets'}</div>
+                    <div className="text-5xl font-bold text-white mb-2 tracking-tight font-mono transition-all duration-500">
+                        {goodwillBalance} <span className="text-lg text-gray-400 font-normal font-sans">GWC</span>
+                    </div>
+                    <div className="text-xs text-gray-400">≈ ${(goodwillBalance * 0.1).toFixed(2)} USD</div>
+                </div>
+                
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => handleTransaction('send')}
+                        disabled={isTransacting || openingPack}
+                        className="flex-1 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {isTransacting ? <Loader2 className="w-4 h-4 animate-spin"/> : <ArrowUpRight className="w-4 h-4" />} 
+                        {isZh ? '轉帳' : 'Send'}
+                    </button>
+                    <button 
+                        onClick={() => handleTransaction('receive')}
+                        disabled={isTransacting || openingPack}
+                        className="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-colors flex items-center justify-center gap-2 border border-white/10 disabled:opacity-50"
+                    >
+                        {isTransacting ? <Loader2 className="w-4 h-4 animate-spin"/> : <ArrowDownLeft className="w-4 h-4" />} 
+                        {isZh ? '接收' : 'Request'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Booster Packs */}
+            <div className="md:col-span-2 glass-panel p-6 rounded-2xl relative overflow-hidden">
+                <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-celestial-purple" />
+                    {isZh ? '卡片補充包' : 'Card Booster Packs'}
+                </h3>
+                
+                {openingPack && (
+                    <div className="absolute inset-0 bg-slate-900/90 z-20 flex flex-col items-center justify-center backdrop-blur-sm animate-fade-in">
+                        <Package className="w-16 h-16 text-celestial-gold animate-bounce" />
+                        <span className="text-celestial-gold font-bold mt-4 animate-pulse">Opening Pack...</span>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Standard Pack */}
+                    <div className="p-4 rounded-xl border border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10 transition-all cursor-pointer group relative" onClick={() => handleBuyPack(500, 'Standard Pack')}>
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none" />
+                        <div className="flex justify-between items-start mb-4">
+                            <Package className="w-8 h-8 text-blue-400" />
+                            <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold text-white">500 GWC</span>
+                        </div>
+                        <h4 className="font-bold text-white mb-1">Standard Pack</h4>
+                        <p className="text-xs text-gray-400">Contains 1 random ESG card. Chance for Rare.</p>
+                    </div>
+
+                    {/* Premium Pack */}
+                    <div className="p-4 rounded-xl border border-celestial-gold/30 bg-celestial-gold/5 hover:bg-celestial-gold/10 transition-all cursor-pointer group relative" onClick={() => handleBuyPack(1200, 'Premium Pack')}>
+                        <div className="absolute inset-0 bg-gradient-to-br from-celestial-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none" />
+                        <div className="flex justify-between items-start mb-4">
+                            <Sparkles className="w-8 h-8 text-celestial-gold animate-pulse" />
+                            <span className="px-2 py-1 bg-celestial-gold text-black rounded text-xs font-bold">1200 GWC</span>
+                        </div>
+                        <h4 className="font-bold text-white mb-1 text-transparent bg-clip-text bg-gradient-to-r from-celestial-gold to-amber-200">Premium Pack</h4>
+                        <p className="text-xs text-gray-400">Higher chance for Epic & Legendary cards.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Individual Items */}
+        <div>
+            <h3 className="text-xl font-bold text-white mb-4">{isZh ? '精選單卡與商品' : 'Featured Cards & Items'}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[1,2,3,4].map(i => (
+                    <div key={i} className="glass-panel p-4 rounded-xl border border-white/5 hover:border-white/20 transition-all group cursor-pointer relative" onClick={() => addToast('info', 'Feature coming soon', 'Marketplace')}>
+                        <div className="aspect-[3/4] bg-slate-800 rounded-lg mb-4 overflow-hidden relative border border-white/10 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all">
+                            {/* Card Art Placeholder */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                <div className={`w-12 h-12 rounded-full mb-2 ${i===1 ? 'bg-amber-500/20' : 'bg-white/5'}`}></div>
+                                <span className="text-xs font-bold text-gray-500">Mystery Card #{i+100}</span>
+                            </div>
+                            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-xs font-bold text-white border border-white/10">
+                                {i * 250 + 100} GWC
+                            </div>
+                        </div>
+                        <h4 className="font-semibold text-white mb-1 text-sm truncate">Limited Edition #{i}</h4>
+                        <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                            <span className={`w-2 h-2 rounded-full ${i===1 ? 'bg-celestial-gold' : 'bg-gray-600'}`}></span>
+                            {i===1 ? 'Legendary' : 'Common'}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+  );
+};
