@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { DashboardWidget, AuditLogEntry, EsgCard, Quest, ToDoItem, Badge, CarbonData } from '../../types';
-import { v4 as uuidv4 } from 'uuid'; 
 
 export interface EsgScores {
   environmental: number;

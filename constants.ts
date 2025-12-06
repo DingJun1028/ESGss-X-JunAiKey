@@ -162,6 +162,31 @@ export const TRANSLATIONS = {
   }
 };
 
+export const DAILY_BRIEFING_TEMPLATES = {
+    'en-US': {
+        greeting: "Good Morning",
+        intro: "While you were offline, I monitored 4.2TB of supply chain data and regulatory updates.",
+        insights: [
+            { type: 'risk', text: "EU CBAM carbon price projection increased by 2.4% overnight." },
+            { type: 'opportunity', text: "Plant B solar efficiency reached a record high of 98%." },
+            { type: 'alert', text: "Supplier 'TechFab Inc.' reported a water usage anomaly." }
+        ],
+        action: "Review Supplier Audit",
+        button: "Accept Briefing"
+    },
+    'zh-TW': {
+        greeting: "早安",
+        intro: "在您休息時，我監控了 4.2TB 的供應鏈數據與法規更新。以下是今日關鍵匯報：",
+        insights: [
+            { type: 'risk', text: "歐盟 CBAM 碳價預測值隔夜上漲 2.4%，建議檢視 Q3 預算。" },
+            { type: 'opportunity', text: "B 廠區太陽能發電效率達到 98% 的歷史新高。" },
+            { type: 'alert', text: "供應商「TechFab Inc.」通報水資源使用異常，需關注。" }
+        ],
+        action: "審閱供應商稽核",
+        button: "接受匯報"
+    }
+};
+
 /**
  * Sustainability Report Structure Definition based on the Full Technical Whitepaper.
  */
@@ -297,7 +322,7 @@ export const REPORT_STRUCTURE: ReportSection[] = [
         griStandards: 'GRI 302' 
       },
       { id: '6.04', title: '6.04 水資源管理 (Water)', template: '使用WRI工具分析水風險...總取水量為【X】...', griStandards: 'GRI 303' },
-      { id: '6.05', title: '6.05 廢棄物管理 (Waste)', template: '依循ISO14001...廢棄物總量為【X】公噸...', griStandards: 'GRI 306' }
+      { id: '6.05', title: '6.05 廢棄物管理 (Waste)', template: '依循 ISO 14001...廢棄物總量為【X】公噸...', griStandards: 'GRI 306' }
     ]
   },
   {
@@ -505,7 +530,4 @@ export const CHART_DATA = [
   { name: 'Jan', value: 400, baseline: 300 },
   { name: 'Feb', value: 300, baseline: 320 },
   { name: 'Mar', value: 550, baseline: 350 },
-  { name: 'Apr', value: 480, baseline: 380 },
-  { name: 'May', value: 390, baseline: 400 },
-  { name: 'Jun', value: 650, baseline: 420 },
-];
+  { name: 'Apr', value: 480

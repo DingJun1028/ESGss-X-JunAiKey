@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, GraduationCap, Search, Settings, Activity, Sun, Bell, Languages,
-  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home, Radio
+  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home, Radio, Command
 } from 'lucide-react';
 import { View, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { useCompany } from './providers/CompanyProvider';
 import { useToast } from '../contexts/ToastContext';
 import { VoiceControl } from './VoiceControl';
+import { CommandPalette } from './CommandPalette';
 
 interface LayoutProps {
   currentView: View;
@@ -23,6 +24,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   const { userName, userRole, xp, level, goodwillBalance, latestEvent, totalScore } = useCompany();
   const { notifications, clearNotifications } = useToast();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
 
   // Calculate XP percentage for current level (Level N starts at (N-1)*1000)
   const currentLevelBaseXp = (level - 1) * 1000;
@@ -32,19 +34,50 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   // Visual Alarm for Low Score
   const isCritical = totalScore < 60;
 
+  // Keyboard shortcut for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className={`min-h-screen bg-celestial-900 text-gray-200 relative overflow-hidden font-sans selection:bg-celestial-emerald/30 transition-colors duration-1000 ${isCritical ? 'border-4 border-red-500/20' : ''}`}>
       
-      {/* Background Ambience */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] animate-blob ${isCritical ? 'bg-red-500/20' : 'bg-celestial-purple/20'}`} />
-        <div className="absolute top-[20%] right-[-10%] w-[35%] h-[35%] bg-celestial-emerald/20 rounded-full blur-[120px] animate-blob animation-delay-2000" />
-        <div className="absolute bottom-[-10%] left-[20%] w-[30%] h-[30%] bg-celestial-gold/10 rounded-full blur-[100px] animate-blob animation-delay-4000" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
+      {/* Background Ambience: Aurora Flow */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Deep Space Base */}
+        <div className="absolute inset-0 bg-slate-950" />
+        
+        {/* Aurora Stream 1 (Purple/Blue) */}
+        <div className={`absolute top-[-20%] left-[-20%] w-[120%] h-[80%] rounded-[100%] blur-[120px] opacity-30 animate-blob mix-blend-screen transform -rotate-12 ${isCritical ? 'bg-red-900' : 'bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900'}`} />
+        
+        {/* Aurora Stream 2 (Emerald/Teal) */}
+        <div className={`absolute top-[10%] right-[-20%] w-[120%] h-[70%] rounded-[100%] blur-[100px] opacity-20 animate-blob animation-delay-2000 mix-blend-screen transform rotate-12 ${isCritical ? 'bg-orange-900' : 'bg-gradient-to-l from-emerald-900 via-teal-900 to-cyan-900'}`} />
+        
+        {/* Aurora Stream 3 (Gold Accent) */}
+        <div className="absolute bottom-[-10%] left-[10%] w-[100%] h-[50%] rounded-[100%] blur-[120px] opacity-10 animate-blob animation-delay-4000 mix-blend-screen bg-gradient-to-t from-amber-900 via-yellow-900 to-transparent" />
+        
+        {/* Noise Overlay for texture */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-150 contrast-200" />
       </div>
 
       {/* Voice Control Interface */}
       <VoiceControl onNavigate={onNavigate} language={language} />
+
+      {/* Command Palette */}
+      <CommandPalette 
+        isOpen={isCommandOpen} 
+        onClose={() => setIsCommandOpen(false)} 
+        onNavigate={onNavigate} 
+        language={language}
+        toggleLanguage={onToggleLanguage}
+      />
 
       {/* Main Container */}
       <div className="relative z-10 flex h-screen">
@@ -114,6 +147,16 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
             
             {/* Gamification HUD (Global Status Pod) */}
             <div className="hidden md:flex items-center gap-6">
+                {/* Search Trigger */}
+                <button 
+                    onClick={() => setIsCommandOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 text-sm transition-all group"
+                >
+                    <Search className="w-4 h-4 group-hover:text-white" />
+                    <span className="hidden lg:inline">Search...</span>
+                    <kbd className="hidden lg:inline-block ml-2 px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-gray-500">⌘K</kbd>
+                </button>
+
                 {/* Level Pod */}
                 <div className="flex items-center gap-3 bg-slate-900/60 border border-white/10 rounded-full pr-4 pl-1 py-1 group hover:border-white/20 transition-all cursor-pointer" onClick={() => onNavigate(View.GAMIFICATION)} title="Click to view full profile">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-celestial-purple to-blue-600 flex items-center justify-center font-bold text-xs text-white border-2 border-slate-900 shadow-lg">
