@@ -57,7 +57,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight text-center flex flex-col gap-1">
               <span>ESGss</span>
-              <span className="text-xl text-celestial-emerald tracking-wider">善向永續系統</span>
+              <span className="text-xl text-celestial-emerald tracking-wider">善向永續</span>
             </h1>
             <p className="text-xs text-celestial-gold mt-3 uppercase tracking-widest text-center border-t border-white/10 pt-3 w-full">
               Powered by JunAiKey

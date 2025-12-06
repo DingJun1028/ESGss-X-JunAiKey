@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { MapPin, Wind, Zap, AlertTriangle, Factory } from 'lucide-react';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 
 interface Location {
   id: string;
@@ -24,6 +25,66 @@ const LOCATIONS: Location[] = [
   { id: 'hcm', name: 'Ho Chi Minh', region: 'APAC', x: 78, y: 55, status: 'critical', metrics: { co2: '560t', energy: '1.2MWh', output: '110%' } },
 ];
 
+// ----------------------------------------------------------------------
+// Universal Agent: Geo-Spatial Node
+// ----------------------------------------------------------------------
+interface MapPinProps extends InjectedProxyProps {
+    location: Location;
+    onClick: (loc: Location) => void;
+}
+
+const MapPinBase: React.FC<MapPinProps> = ({ location, onClick, adaptiveTraits, trackInteraction, isAgentActive }) => {
+    
+    // Agent Traits Visuals
+    const isEvolved = adaptiveTraits?.includes('evolution'); // High interaction
+    const isOptimizing = adaptiveTraits?.includes('optimization'); // AI Working
+    
+    const statusColor = location.status === 'critical' ? 'bg-red-500' : location.status === 'warning' ? 'bg-amber-500' : 'bg-emerald-500';
+    
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        trackInteraction?.('click', location);
+        onClick(location);
+    };
+
+    return (
+        <div
+          className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group/marker"
+          style={{ left: `${location.x}%`, top: `${location.y}%` }}
+          onClick={handleClick}
+        >
+          {/* Pulse Ring (Agent Activity) */}
+          <div className={`absolute inset-0 rounded-full animate-ping opacity-75 ${statusColor} ${isOptimizing ? 'duration-500' : 'duration-1000'}`} />
+          
+          {/* Core Dot (Physical Manifestation) */}
+          <div className={`
+              relative rounded-full border-2 border-white shadow-lg transition-transform 
+              ${statusColor}
+              ${isEvolved ? 'w-6 h-6 scale-110' : 'w-4 h-4 group-hover/marker:scale-125'}
+          `} />
+
+          {/* AI Awareness Indicator */}
+          {isAgentActive && (
+              <div className="absolute -top-2 -right-2 w-2 h-2 bg-celestial-purple rounded-full border border-white animate-bounce" />
+          )}
+
+          {/* Label */}
+          <div className={`
+              absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap transition-opacity bg-black/80 px-2 py-1 rounded text-[10px] text-white border border-white/20 backdrop-blur-md z-20
+              ${isEvolved ? 'opacity-100' : 'opacity-0 group-hover/marker:opacity-100'}
+          `}>
+              {location.name}
+          </div>
+        </div>
+    );
+};
+
+const GeoSpatialAgent = withUniversalProxy(MapPinBase);
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
+
 export const GlobalOperations: React.FC = () => {
   const [selectedLoc, setSelectedLoc] = useState<Location | null>(null);
 
@@ -41,7 +102,6 @@ export const GlobalOperations: React.FC = () => {
          {/* Simplified World Map Shape (SVG Path) */}
          <svg viewBox="0 0 1000 500" className="absolute inset-0 w-full h-full text-white/10 fill-current">
              <path d="M150,150 Q200,100 250,150 T350,150 T450,100 T550,150 T650,120 T750,150 T850,200 T950,250 V400 H50 V200 Q100,180 150,150 Z" /> 
-             {/* Note: This is a purely abstract shape for UI feel, replacing it with a real geojson path would be ideal for prod */}
              <text x="500" y="250" textAnchor="middle" className="text-[100px] font-bold opacity-5 pointer-events-none">GLOBAL OPS</text>
          </svg>
       </div>
@@ -49,29 +109,15 @@ export const GlobalOperations: React.FC = () => {
       {/* Radar Scan Effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-celestial-emerald/5 to-transparent w-[50%] h-full animate-[scan_4s_linear_infinite] pointer-events-none border-r border-celestial-emerald/20 blur-sm" />
 
-      {/* Location Markers */}
+      {/* Location Markers - Now Agents */}
       {LOCATIONS.map((loc) => (
-        <div
-          key={loc.id}
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group/marker"
-          style={{ left: `${loc.x}%`, top: `${loc.y}%` }}
-          onClick={() => setSelectedLoc(loc)}
-        >
-          {/* Pulse Ring */}
-          <div className={`absolute inset-0 rounded-full animate-ping opacity-75 ${
-              loc.status === 'critical' ? 'bg-red-500' : loc.status === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
-          }`} />
-          
-          {/* Core Dot */}
-          <div className={`relative w-4 h-4 rounded-full border-2 border-white shadow-lg transition-transform group-hover/marker:scale-125 ${
-              loc.status === 'critical' ? 'bg-red-500' : loc.status === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
-          }`} />
-
-          {/* Label */}
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-opacity bg-black/80 px-2 py-1 rounded text-[10px] text-white border border-white/20 backdrop-blur-md z-20">
-              {loc.name}
-          </div>
-        </div>
+        <GeoSpatialAgent 
+            key={loc.id}
+            id={`geo-${loc.id}`} // Brain ID
+            label={loc.name}
+            location={loc}
+            onClick={setSelectedLoc}
+        />
       ))}
 
       {/* Data Overlay Panel */}
@@ -97,6 +143,7 @@ export const GlobalOperations: React.FC = () => {
 
             <div className="space-y-3">
                 <OmniEsgCell 
+                    id={`metric-co2-${selectedLoc.id}`}
                     mode="list" 
                     label="Carbon Emission" 
                     value={selectedLoc.metrics.co2} 
@@ -106,6 +153,7 @@ export const GlobalOperations: React.FC = () => {
                     traits={['bridging']}
                 />
                 <OmniEsgCell 
+                    id={`metric-eng-${selectedLoc.id}`}
                     mode="list" 
                     label="Energy Usage" 
                     value={selectedLoc.metrics.energy} 

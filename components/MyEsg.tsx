@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   CheckSquare, Calendar, Newspaper, Star, Crown, Users, ArrowRight, Sparkles, 
@@ -140,7 +141,8 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
   const { 
     userName, collectedCards, 
     quests, updateQuestStatus, completeQuest,
-    todos, addTodo, toggleTodo, deleteTodo
+    todos, addTodo, toggleTodo, deleteTodo,
+    lastBriefingDate, markBriefingRead
   } = useCompany();
   
   const { addToast } = useToast();
@@ -149,9 +151,24 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
   const [newTodo, setNewTodo] = useState('');
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   
-  // Controls the Daily Briefing Modal
-  // In a real app, this would check a 'lastSeenDate' in localStorage
-  const [showBriefing, setShowBriefing] = useState(true);
+  // Controls the Daily Briefing Modal logic
+  const [showBriefing, setShowBriefing] = useState(false);
+
+  useEffect(() => {
+      // Check if briefed today
+      const today = new Date().toDateString();
+      if (lastBriefingDate !== today) {
+          // Slight delay for smoother entry animation after load
+          const timer = setTimeout(() => setShowBriefing(true), 1000);
+          return () => clearTimeout(timer);
+      }
+  }, [lastBriefingDate]);
+
+  const handleCloseBriefing = () => {
+      setShowBriefing(false);
+      markBriefingRead();
+      addToast('success', isZh ? '情報已同步至策略中樞' : 'Insights synced to Strategy Hub', 'JunAiKey');
+  };
 
   // --- Handlers: To-Do ---
   const handleAddTodo = (e: React.FormEvent) => {
@@ -264,7 +281,7 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
     <>
         <DailyBriefingModal 
             isOpen={showBriefing} 
-            onClose={() => setShowBriefing(false)} 
+            onClose={handleCloseBriefing} 
             language={language}
             userName={userName}
         />

@@ -3,231 +3,153 @@ import React, { useState, useEffect } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { AlertTriangle, Users, TrendingUp, Globe, ShieldAlert, Target, ArrowRight, Layers, BrainCircuit, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Users, TrendingUp, Globe, ShieldAlert, Target, ArrowRight, Layers, BrainCircuit, Sparkles, X, ChevronRight, FileText } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useCompany } from './providers/CompanyProvider';
-import { streamChat } from '../services/ai-service';
+import { generateRiskMitigationPlan } from '../services/ai-service';
 import { marked } from 'marked';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 
 interface StrategyHubProps {
   language: Language;
 }
 
+// ----------------------------------------------------------------------
+// Universal Agent: Strategic Risk Node
+// ----------------------------------------------------------------------
+interface RiskNodeProps extends InjectedProxyProps {
+    name: string;
+    level: string;
+    probability: string;
+    onClick: () => void;
+}
+
+const RiskNodeBase: React.FC<RiskNodeProps> = ({ 
+    name, level, probability, onClick, 
+    adaptiveTraits, trackInteraction, isHighFrequency, isAgentActive 
+}) => {
+    
+    // Determine base styles based on level
+    const getBaseColor = (lvl: string) => {
+        switch (lvl) {
+            case 'critical': return 'bg-red-500/80 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse';
+            case 'high': return 'bg-amber-500/80 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]';
+            case 'medium': return 'bg-yellow-500/80 border-yellow-400';
+            case 'low': return 'bg-emerald-500/80 border-emerald-400';
+            default: return 'bg-gray-500';
+        }
+    };
+
+    // Agent Logic: If interacted frequently ('evolution' trait), change appearance
+    const isEvolved = adaptiveTraits?.includes('evolution');
+    const isLearning = adaptiveTraits?.includes('learning') || isAgentActive;
+
+    const dynamicClasses = isEvolved 
+        ? 'scale-110 shadow-2xl z-20 ring-2 ring-white' 
+        : 'hover:scale-110 transition-all duration-300';
+
+    const handleClick = () => {
+        trackInteraction?.('click'); // Feed the brain
+        onClick();
+    };
+
+    return (
+        <div 
+            onClick={handleClick}
+            className={`
+                relative group flex items-center justify-center rounded-xl border backdrop-blur-md cursor-pointer shadow-lg
+                ${getBaseColor(level)}
+                ${dynamicClasses}
+                ${probability === 'high' ? 'col-start-3' : probability === 'medium' ? 'col-start-2' : 'col-start-1'}
+                ${level === 'critical' || level === 'high' ? 'row-start-1' : level === 'medium' ? 'row-start-2' : 'row-start-3'}
+            `}
+        >
+            <span className="text-[10px] sm:text-xs font-bold text-white text-center px-2 drop-shadow-md">{name}</span>
+            
+            {/* Agent Indicators */}
+            <div className="absolute top-1 right-1 flex gap-1">
+                {isLearning && <div className="w-2 h-2 rounded-full bg-celestial-purple animate-ping" />}
+                <Sparkles className={`w-3 h-3 text-white ${isEvolved ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`} />
+            </div>
+        </div>
+    );
+};
+
+// Wrap it to make it an Agent
+const StrategicRiskAgent = withUniversalProxy(RiskNodeBase);
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
+
 export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
   const { addToast } = useToast();
-  const { esgScores, carbonCredits } = useCompany();
-  const [isLoading, setIsLoading] = useState(true);
+  const { esgScores, carbonCredits, budget, companyName } = useCompany();
   
-  // Risk Analysis State
   const [analyzingRisk, setAnalyzingRisk] = useState<string | null>(null);
   const [riskInsight, setRiskInsight] = useState<string>('');
-  const [isAiStreaming, setIsAiStreaming] = useState(false);
-
-  // Simulate Data Fetching
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        setIsLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleAiTrigger = () => {
-     addToast('info', 'AI Strategy Agent analyzing heatmaps...', 'Neural Link');
-  };
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
 
   const handleRiskClick = async (riskName: string) => {
       setAnalyzingRisk(riskName);
       setRiskInsight('');
-      setIsAiStreaming(true);
+      setIsAiProcessing(true);
       
-      const prompt = isZh 
-        ? `針對「${riskName}」這個企業風險，請提供三個具體的減緩策略 (Mitigation Plan)。請條列式回答。`
-        : `Provide 3 concrete mitigation strategies for the corporate risk: "${riskName}". Bullet points.`;
+      const context = {
+          company: companyName,
+          scores: esgScores,
+          budget_available: budget,
+          carbon_inventory: carbonCredits
+      };
 
       try {
-          const stream = streamChat(prompt, language);
-          for await (const chunk of stream) {
-              setRiskInsight(prev => prev + chunk);
-          }
+          // Use the deep reasoning function which NOW updates the Universal Library
+          const plan = await generateRiskMitigationPlan(riskName, context, language);
+          setRiskInsight(plan);
       } catch (e) {
-          setRiskInsight('AI Analysis Failed.');
+          setRiskInsight('AI Analysis Failed. Please check API Key.');
       } finally {
-          setIsAiStreaming(false);
+          setIsAiProcessing(false);
       }
   };
 
-  // Dynamic Risk Calculation Logic
-  // Using God Mode inputs to simulate real analysis
-  const calculateRisks = () => {
-      // 1. Carbon Pricing Risk (Depends on Carbon Credits)
-      // Low credits (< 1000) = High Risk
-      const carbonRiskLevel = carbonCredits < 1000 ? 'critical' : carbonCredits < 5000 ? 'high' : 'medium';
-      
-      // 2. Reputation Risk (Depends on Social Score)
-      // Low Social Score (< 70) = High Risk
-      const reputationRiskLevel = esgScores.social < 60 ? 'critical' : esgScores.social < 80 ? 'medium' : 'low';
-
-      // 3. Compliance Risk (Depends on Governance Score)
-      const complianceRiskLevel = esgScores.governance < 60 ? 'critical' : esgScores.governance < 85 ? 'medium' : 'low';
-
-      return [
-        { name: isZh ? '碳定價衝擊' : 'Carbon Pricing', level: carbonRiskLevel, probability: 'high' },
-        { name: isZh ? '商譽風險' : 'Reputation', level: reputationRiskLevel, probability: 'medium' },
-        { name: isZh ? '合規風險' : 'Compliance', level: complianceRiskLevel, probability: 'high' },
-        { name: isZh ? '極端氣候事件' : 'Extreme Weather', level: 'high', probability: 'medium' }, // External factor, kept constant
-        { name: isZh ? '供應鏈中斷' : 'Supply Chain', level: 'medium', probability: 'high' },
-        { name: isZh ? '人才流失' : 'Talent Loss', level: esgScores.social < 70 ? 'high' : 'low', probability: 'low' },
-      ];
-  };
-
-  const risks = calculateRisks();
-
-  const getHeatmapColor = (level: string) => {
-    switch (level) {
-      case 'critical': return 'bg-red-500/80 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse';
-      case 'high': return 'bg-amber-500/80 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]';
-      case 'medium': return 'bg-yellow-500/80 border-yellow-400';
-      case 'low': return 'bg-emerald-500/80 border-emerald-400';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  // Mock Data demonstrating the "8 Evolutionary Traits"
-  const metrics = [
-    {
-      label: isZh ? '氣候風險值 (CVaR)' : 'Climate Value at Risk',
-      value: '$4.2M',
-      subValue: isZh ? 'AI 填補推算' : 'AI Gap-Filled Estimation',
-      trend: { value: 2.5, direction: 'down' as const },
-      color: 'gold' as const,
-      icon: AlertTriangle,
-      confidence: 'medium' as const,
-      traits: ['gap-filling', 'optimization'], 
-      dataLink: 'ai' as const
-    },
-    {
-      label: isZh ? '利害關係人議合' : 'Stakeholder Engagement',
-      value: `${esgScores.social}/100`, // Linked to real data
-      subValue: isZh ? '持續學習中...' : 'Self-Learning...',
-      trend: { value: 5.4, direction: 'up' as const },
-      color: 'purple' as const,
-      icon: Users,
-      confidence: 'high' as const,
-      traits: ['learning', 'evolution'], 
-      tags: ['Social', 'Gov']
-    },
-    {
-      label: isZh ? '綠色營收占比' : 'Green Revenue Share',
-      value: '18.5%',
-      subValue: isZh ? '性能飆升' : 'Performance Surge',
-      trend: { value: 12.2, direction: 'up' as const },
-      color: 'emerald' as const,
-      icon: TrendingUp,
-      confidence: 'high' as const,
-      verified: true,
-      traits: ['performance', 'tagging', 'bridging'], 
-      tags: ['EU Taxonomy', 'KPI']
-    },
-    {
-      label: isZh ? '天衣無縫整合' : 'Seamless Integration',
-      value: '100%',
-      subValue: 'Native Cloud',
-      trend: { value: 0, direction: 'neutral' as const },
-      color: 'blue' as const,
-      icon: ShieldAlert,
-      confidence: 'high' as const,
-      traits: ['seamless'], 
-      dataLink: 'live' as const
-    }
+  const risks = [
+    { id: 'risk-1', name: isZh ? '碳定價衝擊' : 'Carbon Pricing', level: carbonCredits < 1000 ? 'critical' : 'high', probability: 'high' },
+    { id: 'risk-2', name: isZh ? '商譽風險' : 'Reputation', level: esgScores.social < 70 ? 'critical' : 'medium', probability: 'medium' },
+    { id: 'risk-3', name: isZh ? '合規風險' : 'Compliance', level: esgScores.governance < 80 ? 'high' : 'low', probability: 'high' },
+    { id: 'risk-4', name: isZh ? '極端氣候' : 'Extreme Weather', level: 'high', probability: 'medium' }, 
+    { id: 'risk-5', name: isZh ? '供應鏈中斷' : 'Supply Chain', level: 'medium', probability: 'high' },
+    { id: 'risk-6', name: isZh ? '人才流失' : 'Talent Loss', level: 'low', probability: 'low' },
   ];
 
   return (
     <div className="space-y-8 animate-fade-in relative">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white mb-2 tracking-tight flex items-center gap-2">
             {t.modules.strategy.title}
             <div className="px-2 py-0.5 rounded-full bg-celestial-purple/20 border border-celestial-purple/30 flex items-center gap-1">
                <BrainCircuit className="w-3 h-3 text-celestial-purple" />
-               <span className="text-[10px] text-celestial-purple font-mono">NEURAL LINK CONNECTED</span>
+               <span className="text-[10px] text-celestial-purple font-mono">THINKING MODE ENABLED</span>
             </div>
           </h2>
           <p className="text-gray-400">{t.modules.strategy.desc}</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-white/10 backdrop-blur-md">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
-            <span className="text-xs text-emerald-400 font-medium font-mono">{isZh ? 'Quantum Bricks: ACTIVE' : 'Quantum Bricks: ACTIVE'}</span>
-        </div>
       </div>
 
-      {/* Omni-ESG-Cells Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isLoading 
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <OmniEsgCell key={i} mode="card" loading={true} />
-            ))
-          : metrics.map((m, idx) => (
-              <OmniEsgCell
-                key={idx}
-                mode="card"
-                label={m.label}
-                value={m.value}
-                subValue={m.subValue}
-                trend={m.trend}
-                color={m.color}
-                icon={m.icon}
-                confidence={m.confidence}
-                verified={m.verified}
-                traits={m.traits as any}
-                tags={m.tags}
-                dataLink={m.dataLink}
-                onAiAnalyze={handleAiTrigger}
-              />
-            ))
-        }
-      </div>
-
-      {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Risk Heatmap Section */}
+        {/* Risk Heatmap (Now Alive with Agents) */}
         <div className="lg:col-span-2 glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col group min-h-[400px]">
-          {isLoading ? (
-            <div className="w-full h-full flex flex-col gap-6 animate-pulse">
-               <div className="flex justify-between">
-                  <div className="h-6 w-48 bg-white/10 rounded" />
-                  <div className="h-6 w-24 bg-white/10 rounded" />
-               </div>
-               <div className="flex-1 bg-slate-900/30 rounded-xl border border-white/5 relative">
-                   <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-4 p-8">
-                      {Array.from({ length: 9 }).map((_, i) => (
-                          <div key={i} className="bg-white/5 rounded-xl border border-white/5" />
-                      ))}
-                   </div>
-               </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center mb-6 relative z-10">
+            <div className="flex justify-between items-center mb-6 relative z-10">
                 <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                   <Globe className="w-5 h-5 text-celestial-blue" />
-                  {isZh ? '氣候實體與轉型風險熱點圖' : 'Climate & Transition Risk Heatmap'}
+                  {isZh ? '動態風險熱點圖' : 'Dynamic Risk Heatmap'}
                 </h3>
-                <div className="flex gap-2 text-[10px] bg-slate-900/50 p-1.5 rounded-lg border border-white/5">
-                  <span className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">Critical</span>
-                  <span className="flex items-center gap-1 px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">High</span>
-                  <span className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Low</span>
-                </div>
-              </div>
-              
-              <div className="relative flex-1 min-h-[350px] w-full bg-slate-900/30 rounded-xl border border-white/5 p-8 flex items-center justify-center overflow-hidden">
-                {/* Dynamic Background Effect */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-celestial-purple/5 to-transparent pointer-events-none" />
-
-                {/* Grid Lines */}
+            </div>
+            
+            <div className="relative flex-1 min-h-[350px] w-full bg-slate-900/30 rounded-xl border border-white/5 p-8 flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none p-8 z-0">
                     {[...Array(9)].map((_, i) => (
                         <div key={i} className="border border-white/5 border-dashed relative">
@@ -236,9 +158,7 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
                     ))}
                 </div>
 
-                {/* Matrix Items */}
                 <div className="relative w-full h-full grid grid-cols-3 grid-rows-3 gap-4 z-10">
-                    {/* Axis Labels */}
                     <div className="absolute -left-6 top-1/2 -rotate-90 text-[9px] font-bold text-gray-500 tracking-[0.2em] flex items-center gap-2">
                       <ArrowRight className="w-3 h-3" /> IMPACT
                     </div>
@@ -246,99 +166,101 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
                       PROBABILITY <ArrowRight className="w-3 h-3" />
                     </div>
                     
-                    {risks.map((risk, i) => (
-                        <div 
-                            key={i} 
+                    {risks.map((risk) => (
+                        <StrategicRiskAgent 
+                            key={risk.id}
+                            id={risk.name} // The ID used for the Brain
+                            label={risk.name}
+                            name={risk.name}
+                            level={risk.level}
+                            probability={risk.probability}
                             onClick={() => handleRiskClick(risk.name)}
-                            className={`
-                                relative group flex items-center justify-center rounded-xl border backdrop-blur-md cursor-pointer hover:scale-110 transition-all duration-300 shadow-lg
-                                ${getHeatmapColor(risk.level)}
-                                ${risk.probability === 'high' ? 'col-start-3' : risk.probability === 'medium' ? 'col-start-2' : 'col-start-1'}
-                                ${risk.level === 'critical' || risk.level === 'high' ? 'row-start-1' : risk.level === 'medium' ? 'row-start-2' : 'row-start-3'}
-                            `}
-                        >
-                            <span className="text-[10px] sm:text-xs font-bold text-white text-center px-2 drop-shadow-md leading-tight">{risk.name}</span>
-                            
-                            {/* Hover Tooltip - Click Prompt */}
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-32 bg-black/80 border border-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 text-center pointer-events-none z-20 backdrop-blur-xl translate-y-2 group-hover:translate-y-0">
-                                <span className="text-[10px] text-white flex items-center justify-center gap-1">
-                                    <Sparkles className="w-3 h-3 text-celestial-gold" /> AI Analysis
-                                </span>
-                            </div>
-                        </div>
+                        />
                     ))}
                 </div>
-              </div>
-            </>
-          )}
+            </div>
         </div>
 
-        {/* Strategic Initiatives List using OmniEsgCell List Mode */}
+        {/* AI Action Cards */}
         <div className="glass-panel p-6 rounded-2xl flex flex-col h-full border border-white/10 bg-gradient-to-b from-white/5 to-transparent">
           <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
             <Layers className="w-5 h-5 text-celestial-purple" />
-            {isZh ? '關鍵策略行動' : 'Key Strategic Initiatives'}
+            {isZh ? '戰略行動建議' : 'Strategic Actions'}
           </h3>
           
           <div className="space-y-4 flex-1">
-            {isLoading 
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <OmniEsgCell key={i} mode="list" loading={true} />
-                ))
-              : [1, 2, 3].map((i) => (
-                <OmniEsgCell 
-                  key={i}
-                  mode="list"
-                  label={isZh ? `供應鏈去碳化 Phase ${i}` : `Supply Chain Phase ${i}`}
-                  subValue={isZh ? `Q${i} 2024 • SBTi 目標` : `Q${i} 2024 • SBTi Target`}
-                  value={`${30 * i}%`}
-                  trend={{ value: 5 + i, direction: 'up' }}
-                  confidence="high"
-                  verified={true}
-                  color="purple"
-                  icon={Target}
-                  traits={i === 1 ? ['learning'] : i === 2 ? ['performance', 'optimization'] : ['seamless', 'bridging']}
-                  tags={['SBTi', 'Scope 3']}
-                  onAiAnalyze={handleAiTrigger}
-                />
-              ))
-            }
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-white/5">
-             <button onClick={handleAiTrigger} disabled={isLoading} className="w-full py-3 rounded-xl bg-gradient-to-r from-celestial-gold/10 to-transparent border border-celestial-gold/30 text-sm text-celestial-gold hover:bg-celestial-gold/20 transition-all flex items-center justify-center gap-2 group relative overflow-hidden disabled:opacity-50">
-                <div className="absolute inset-0 bg-celestial-gold/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 blur-xl"/>
-                <BrainCircuit className="w-4 h-4 group-hover:animate-pulse relative z-10" />
-                <span className="relative z-10">{isZh ? 'AI 策略建議產生器 (Agent)' : 'AI Strategy Agent'}</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
-            </button>
+            <OmniEsgCell 
+                id="act-1"
+                mode="list" 
+                label={isZh ? "啟動內部碳定價" : "Launch Internal Carbon Pricing"}
+                value="High Priority" 
+                color="gold" 
+                icon={Target}
+                traits={['optimization']}
+                onClick={() => addToast('info', 'Module linked: Carbon Assets', 'System')}
+            />
+            <OmniEsgCell 
+                id="act-2"
+                mode="list" 
+                label={isZh ? "供應鏈稽核 (Tier 1)" : "Supply Chain Audit (Tier 1)"}
+                value="In Progress" 
+                color="purple" 
+                icon={ShieldAlert}
+                traits={['bridging']}
+            />
           </div>
         </div>
       </div>
 
-      {/* AI Insight Overlay (Triggered by Heatmap Click) */}
+      {/* AI Insight Overlay */}
       {analyzingRisk && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
-              <div className="w-full max-w-lg bg-slate-800 border border-celestial-purple/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-                  <div className="p-4 bg-celestial-purple/20 border-b border-celestial-purple/30 flex justify-between items-center">
-                      <h3 className="font-bold text-white flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 text-celestial-gold" />
-                          AI Risk Analysis: {analyzingRisk}
-                      </h3>
-                      <button onClick={() => setAnalyzingRisk(null)} className="p-1 hover:bg-white/10 rounded-full">
-                          <X className="w-5 h-5 text-white" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md animate-fade-in">
+              <div className="w-full max-w-2xl bg-slate-900 border border-celestial-purple/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                  <div className="p-6 bg-celestial-purple/20 border-b border-celestial-purple/30 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                          <div className="p-2 bg-celestial-purple rounded-lg">
+                              <BrainCircuit className="w-6 h-6 text-white animate-pulse" />
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-white text-lg">{isZh ? 'JunAiKey 策略分析' : 'JunAiKey Strategic Analysis'}</h3>
+                              <p className="text-xs text-celestial-purple/80">{isZh ? `針對風險：${analyzingRisk}` : `Targeting: ${analyzingRisk}`}</p>
+                          </div>
+                      </div>
+                      <button onClick={() => setAnalyzingRisk(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                          <X className="w-6 h-6 text-white" />
                       </button>
                   </div>
-                  <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-900/50 flex-1">
-                      {isAiStreaming && !riskInsight ? (
-                          <div className="flex flex-col items-center justify-center py-12 gap-4">
-                              <BrainCircuit className="w-12 h-12 text-celestial-purple animate-pulse" />
-                              <span className="text-sm text-gray-400 animate-pulse">Consulting Strategic Agent...</span>
+                  
+                  <div className="p-8 overflow-y-auto custom-scrollbar bg-slate-900/50 flex-1">
+                      {isAiProcessing ? (
+                          <div className="flex flex-col items-center justify-center py-12 gap-6">
+                              <div className="relative">
+                                  <div className="w-16 h-16 rounded-full border-4 border-celestial-purple/30 border-t-celestial-purple animate-spin" />
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                      <Sparkles className="w-6 h-6 text-celestial-gold animate-pulse" />
+                                  </div>
+                              </div>
+                              <div className="text-center space-y-2">
+                                  <span className="text-lg font-bold text-white">{isZh ? '深度推理中...' : 'Deep Reasoning in Progress...'}</span>
+                                  <p className="text-sm text-gray-400">{isZh ? '正在模擬賽局情境與計算 ROI' : 'Simulating Game Theory scenarios & calculating ROI'}</p>
+                              </div>
                           </div>
                       ) : (
-                          <div className="markdown-content text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(riskInsight) as string }} />
+                          <div className="prose prose-invert prose-sm max-w-none">
+                              <div className="markdown-content" dangerouslySetInnerHTML={{ __html: marked.parse(riskInsight) as string }} />
+                          </div>
                       )}
                   </div>
+                  
+                  {!isAiProcessing && (
+                      <div className="p-4 border-t border-white/10 bg-white/5 flex justify-end gap-3">
+                          <button onClick={() => setAnalyzingRisk(null)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">{isZh ? '關閉' : 'Close'}</button>
+                          <button className="px-6 py-2 bg-celestial-emerald text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors flex items-center gap-2">
+                              <FileText className="w-4 h-4" />
+                              {isZh ? '匯出行動計畫' : 'Export Action Plan'}
+                          </button>
+                      </div>
+                  )}
               </div>
           </div>
       )}

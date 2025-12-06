@@ -1,22 +1,24 @@
 
-import { InteractionEvent, OmniEsgTrait } from '../types';
+import { InteractionEvent, OmniEsgTrait, UniversalKnowledgeNode, UniversalLabel } from '../types';
 
-type Listener = (componentId: string, traits: OmniEsgTrait[]) => void;
+type Listener = (node: UniversalKnowledgeNode) => void;
 
 /**
- * Evolution Engine (Client-side Heuristic Model).
- * Implements "Self-Growth" by tracking component interactions and dynamically 
- * assigning traits or weights based on usage frequency (Heatmap Analysis).
+ * Universal Intelligence Library (The Brain).
+ * Previously 'EvolutionEngine'.
  * 
- * UPGRADE v2: Added Observer Pattern for real-time reactivity.
+ * Responsibilities:
+ * 1. Store the state of all Universal Agent Components (Nodes).
+ * 2. Manage the bidirectional sync between UI (Component) and Logic (Agent).
+ * 3. Provide a Pub/Sub mechanism for real-time trait evolution.
  */
-class EvolutionEngine {
-  private static STORAGE_KEY = 'esgss_evolution_matrix_v1';
-  private interactionMap: Map<string, number>; // ComponentID -> Score
+class UniversalIntelligenceEngine {
+  private static STORAGE_KEY = 'jun_aikey_universal_mind_v1';
+  private knowledgeGraph: Map<string, UniversalKnowledgeNode>; 
   private listeners: Set<Listener>;
 
   constructor() {
-    this.interactionMap = new Map();
+    this.knowledgeGraph = new Map();
     this.listeners = new Set();
     this.load();
   }
@@ -24,27 +26,58 @@ class EvolutionEngine {
   private load() {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem(EvolutionEngine.STORAGE_KEY);
+        const saved = localStorage.getItem(UniversalIntelligenceEngine.STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          this.interactionMap = new Map(Object.entries(parsed));
+          // Rehydrate map
+          Object.values(parsed).forEach((node: any) => {
+             this.knowledgeGraph.set(node.id, node);
+          });
         }
       } catch (e) {
-        console.error("Evolution Engine: Failed to load matrix", e);
+        console.error("Universal Intelligence: Failed to load memory", e);
       }
     }
   }
 
   private save() {
     if (typeof window !== 'undefined') {
-      const obj = Object.fromEntries(this.interactionMap);
-      localStorage.setItem(EvolutionEngine.STORAGE_KEY, JSON.stringify(obj));
+      const obj = Object.fromEntries(this.knowledgeGraph);
+      localStorage.setItem(UniversalIntelligenceEngine.STORAGE_KEY, JSON.stringify(obj));
     }
   }
 
   /**
-   * Subscribe to evolution changes.
-   * Returns an unsubscribe function.
+   * Registers a Component as an Agent Node in the Intelligence Library.
+   * "I think, therefore I am."
+   */
+  public registerNode(id: string, label: UniversalLabel | string, initialValue: any) {
+    if (!this.knowledgeGraph.has(id)) {
+      const labelObj: UniversalLabel = typeof label === 'string' 
+        ? { id, text: label } 
+        : label;
+
+      const newNode: UniversalKnowledgeNode = {
+        id,
+        type: 'component',
+        label: labelObj,
+        currentValue: initialValue,
+        traits: [],
+        confidence: 'high',
+        lastInteraction: Date.now(),
+        interactionCount: 0,
+        memory: {
+          history: [],
+          aiInsights: []
+        }
+      };
+      this.knowledgeGraph.set(id, newNode);
+      this.save();
+    }
+  }
+
+  /**
+   * Subscribe to changes for specific nodes or global updates.
    */
   public subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -53,70 +86,76 @@ class EvolutionEngine {
     };
   }
 
-  /**
-   * Notify all listeners about a change in a specific component.
-   */
-  private notify(componentId: string) {
-    const traits = this.getEvolutionaryTraits(componentId);
-    this.listeners.forEach(listener => listener(componentId, traits));
+  private notify(node: UniversalKnowledgeNode) {
+    this.listeners.forEach(listener => listener(node));
   }
 
   /**
-   * Records a user interaction with a component.
-   * Applies Time-Decay logic implicitly by purely additive score 
-   * (reset logic would be needed for true time-decay, simplified here as accumulative growth).
+   * The Sense Input.
+   * Records user interaction, updates "Heatmap", and triggers Evolution.
    */
   public recordInteraction(event: InteractionEvent) {
-    const { componentId, eventType } = event;
-    const currentScore = this.interactionMap.get(componentId) || 0;
+    const { componentId, eventType, payload } = event;
+    const node = this.knowledgeGraph.get(componentId);
     
-    let weight = 1;
-    switch (eventType) {
-      case 'click': weight = 5; break;
-      case 'edit': weight = 10; break;
-      case 'ai-trigger': weight = 8; break;
-      case 'hover': weight = 0.5; break;
-    }
+    if (node) {
+      // 1. Update Metrics
+      node.interactionCount += 1;
+      node.lastInteraction = Date.now();
+      
+      // 2. Logic: Weighting
+      let weight = 1;
+      switch (eventType) {
+        case 'click': weight = 2; break;
+        case 'edit': weight = 5; break;
+        case 'ai-trigger': weight = 8; break; // High impact
+        case 'hover': weight = 0.1; break;
+      }
+      
+      // 3. Evolve Traits (Self-Adaptation)
+      // This is the "Agent" deciding to change its appearance based on experience.
+      const traits = new Set(node.traits);
+      
+      if (node.interactionCount > 5) traits.add('optimization'); // Breathing
+      if (node.interactionCount > 20) traits.add('performance'); // Rocket
+      if (eventType === 'ai-trigger') traits.add('learning');    // Pulse
+      if (node.interactionCount > 50) traits.add('evolution');   // Infinity
 
-    this.interactionMap.set(componentId, currentScore + weight);
-    this.save();
-    
-    // Trigger Reactivity
-    this.notify(componentId);
+      // Logic: If user edits, we remove "gap-filling" (AI estimate) because now it's human verified
+      if (eventType === 'edit') {
+          traits.delete('gap-filling');
+          node.confidence = 'high';
+          if (payload) node.currentValue = payload;
+      }
+
+      node.traits = Array.from(traits);
+      
+      this.knowledgeGraph.set(componentId, node);
+      this.save();
+      this.notify(node);
+    }
   }
 
   /**
-   * Predicts optimal traits for a component based on its interaction history.
-   * This implements the "Self-Adaptation" mechanism.
+   * Direct Agent Action.
+   * AI Logic updating the Component State directly.
    */
-  public getEvolutionaryTraits(componentId: string): OmniEsgTrait[] {
-    const score = this.interactionMap.get(componentId) || 0;
-    const adaptiveTraits: OmniEsgTrait[] = [];
-
-    // Level 1: Active Usage -> Optimization Glow
-    if (score > 10) {
-      adaptiveTraits.push('optimization');
-    }
-
-    // Level 2: Heavy Usage -> Performance Rocket
-    if (score > 30) {
-      adaptiveTraits.push('performance');
-    }
-
-    // Level 3: Deep Engagement -> Evolution Infinity
-    if (score > 60) {
-      adaptiveTraits.push('evolution');
-    }
-
-    return adaptiveTraits;
+  public agentUpdate(id: string, updates: Partial<UniversalKnowledgeNode>) {
+      const node = this.knowledgeGraph.get(id);
+      if (node) {
+          Object.assign(node, updates);
+          this.knowledgeGraph.set(id, node);
+          this.save();
+          this.notify(node);
+      }
   }
 
   /**
-   * Returns the heat score for debugging or advanced layout logic.
+   * Retrieval: Get the "Soul" of the component.
    */
-  public getScore(componentId: string): number {
-    return this.interactionMap.get(componentId) || 0;
+  public getNode(id: string): UniversalKnowledgeNode | undefined {
+    return this.knowledgeGraph.get(id);
   }
 }
 
-export const evolutionEngine = new EvolutionEngine();
+export const universalIntelligence = new UniversalIntelligenceEngine();

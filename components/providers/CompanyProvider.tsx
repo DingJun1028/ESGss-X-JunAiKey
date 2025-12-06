@@ -76,6 +76,10 @@ interface CompanyContextType {
   
   // System Simulation
   latestEvent: string | null; // For the ticker
+  
+  // AI Assistant State
+  lastBriefingDate: string | null;
+  markBriefingRead: () => void;
 }
 
 const DEFAULT_SCORES: EsgScores = {
@@ -180,6 +184,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [customWidgets, setCustomWidgets] = useState<DashboardWidget[]>(DEFAULT_WIDGETS);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [latestEvent, setLatestEvent] = useState<string | null>(null);
+  const [lastBriefingDate, setLastBriefingDate] = useState<string | null>(null);
 
   // Load from LocalStorage on Mount
   useEffect(() => {
@@ -203,6 +208,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (parsed.todos) setTodos(parsed.todos);
           if (parsed.badges) setBadges(parsed.badges);
           if (parsed.carbonData) setCarbonData(parsed.carbonData);
+          if (parsed.lastBriefingDate) setLastBriefingDate(parsed.lastBriefingDate);
         } catch (e) {
           console.error("ESGss: Failed to load persistence data.", e);
         }
@@ -216,11 +222,11 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (isInitialized && typeof window !== 'undefined') {
       const state = {
         companyName, userName, userRole, budget, carbonCredits, goodwillBalance,
-        xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData
+        xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, lastBriefingDate
       };
       localStorage.setItem('esgss_storage_v1', JSON.stringify(state));
     }
-  }, [companyName, userName, userRole, budget, carbonCredits, goodwillBalance, xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, isInitialized]);
+  }, [companyName, userName, userRole, budget, carbonCredits, goodwillBalance, xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, lastBriefingDate, isInitialized]);
 
   // --- SYSTEM HEARTBEAT SIMULATION ---
   useEffect(() => {
@@ -380,6 +386,10 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     window.location.reload();
   };
 
+  const markBriefingRead = () => {
+      setLastBriefingDate(new Date().toDateString());
+  };
+
   return (
     <CompanyContext.Provider value={{
       companyName, setCompanyName, userName, setUserName, userRole, setUserRole,
@@ -390,7 +400,8 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       esgScores, updateEsgScore, totalScore,
       carbonData, updateCarbonData,
       resetData, customWidgets, addCustomWidget, removeCustomWidget, auditLogs, addAuditLog,
-      latestEvent
+      latestEvent,
+      lastBriefingDate, markBriefingRead
     }}>
       {children}
     </CompanyContext.Provider>

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,12 +11,13 @@
         theme: {
           extend: {
             colors: {
+              // JunAiKey Design System Palette (Formerly Celestial)
               celestial: {
-                900: '#020617', // Deep Space
+                900: '#020617', // Deep Space Base
                 800: '#0f172a',
-                emerald: '#10b981',
-                gold: '#fbbf24',
-                purple: '#8b5cf6',
+                emerald: '#10b981', // Sustainability / Growth
+                gold: '#fbbf24',    // Value / Finance
+                purple: '#8b5cf6',  // Intelligence / AI
                 glass: 'rgba(255, 255, 255, 0.1)',
                 glassBorder: 'rgba(255, 255, 255, 0.2)',
               }
@@ -61,7 +63,7 @@
         font-family: 'Inter', sans-serif;
         overflow-x: hidden;
       }
-      /* Custom Scrollbar */
+      /* Custom Scrollbar for JunAiKey UX */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -85,31 +87,12 @@
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
       }
       
-      .glass-card-hover:hover {
-        background: rgba(255, 255, 255, 0.07);
-        border-color: rgba(255, 255, 255, 0.2);
-        transform: translateY(-2px);
-        transition: all 0.3s ease;
-      }
-
       .text-gradient-gold {
         background: linear-gradient(to right, #fbbf24, #f59e0b);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       }
       
-      .text-gradient-emerald {
-        background: linear-gradient(to right, #34d399, #10b981);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-
-      .text-gradient-purple {
-        background: linear-gradient(to right, #a78bfa, #8b5cf6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-
       /* Markdown Styles */
       .markdown-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.5em; }
       .markdown-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.5em; }
