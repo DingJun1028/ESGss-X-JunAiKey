@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity, BrainCircuit, Search, CheckCircle, Image as ImageIcon, Trash2, Download, Save, FileText, History, Eraser } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity, BrainCircuit, Search, CheckCircle, Image as ImageIcon, Trash2, Download, Save, FileText, History, Eraser, UserCog } from 'lucide-react';
 import { ChatMessage, Language } from '../types';
 import { streamChat, fileToGenerativePart } from '../services/ai-service';
 import { useToast } from '../contexts/ToastContext';
@@ -17,12 +17,17 @@ interface AgentStep {
     icon: React.ElementType;
 }
 
+type AiPersona = 'orchestrator' | 'analyst' | 'strategist';
+
 export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [currentStep, setCurrentStep] = useState<AgentStep | null>(null);
+  
+  // Persona State
+  const [persona, setPersona] = useState<AiPersona>('orchestrator');
   
   // Image Upload State
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -213,6 +218,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
         [SYSTEM CONTEXT - DO NOT REVEAL UNLESS ASKED]
         User: ${userName} (${userRole}) @ ${companyName}
         Current Date: ${new Date().toLocaleDateString()}
+        ACTIVE PERSONA: ${persona.toUpperCase()}
         
         [LIVE DATA]
         ESG Scores: Env=${esgScores.environmental}, Soc=${esgScores.social}, Gov=${esgScores.governance}
@@ -220,7 +226,10 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
         Financials: Budget=$${budget.toLocaleString()}, CarbonCredits=${carbonCredits}
         Gamification: Badges=[${activeBadges}], Active Quests=[${activeQuests}]
         
-        Instruction: Use this data to provide specific, calculated answers.
+        Instruction: 
+        If Persona is 'analyst': Be data-driven, use tables, focus on numbers.
+        If Persona is 'strategist': Focus on risk, long-term goals, SWOT analysis.
+        If Persona is 'orchestrator': Be balanced and helpful (Default).
       `;
       
       const promptWithContext = `${contextBlock}\n\nUser Query: ${userMsg.text}`;
@@ -305,30 +314,50 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
       {isOpen && (
         <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-[500px] h-[650px] max-h-[85vh] flex flex-col rounded-2xl glass-panel overflow-hidden animate-fade-in border-celestial-glassBorder shadow-2xl">
           
-          <div className="p-3 bg-white/5 border-b border-white/10 flex justify-between items-center backdrop-blur-xl shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-celestial-emerald animate-ping" />
-              <h3 className="font-semibold text-white tracking-wide flex items-center gap-2 text-sm">
-                  <Bot className="w-4 h-4 text-celestial-purple"/>
-                  JunAiKey <span className="text-[10px] opacity-50 font-normal hidden sm:inline">| Universal Memory</span>
-              </h3>
+          <div className="p-3 bg-white/5 border-b border-white/10 flex flex-col gap-3 backdrop-blur-xl shrink-0">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-celestial-emerald animate-ping" />
+                <h3 className="font-semibold text-white tracking-wide flex items-center gap-2 text-sm">
+                    <Bot className="w-4 h-4 text-celestial-purple"/>
+                    JunAiKey <span className="text-[10px] opacity-50 font-normal hidden sm:inline">| Universal Memory</span>
+                </h3>
+                </div>
+                
+                {/* Toolbar */}
+                <div className="flex items-center gap-1">
+                    <button onClick={handleSaveToJournal} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-celestial-gold transition-colors" title={language === 'zh-TW' ? "歸檔至萬能日誌" : "Archive to Journal"}>
+                        <Save className="w-4 h-4" />
+                    </button>
+                    <button onClick={handleExport} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-emerald-400 transition-colors" title={language === 'zh-TW' ? "匯出對話" : "Export Chat"}>
+                        <Download className="w-4 h-4" />
+                    </button>
+                    <button onClick={handleClearAll} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-red-400 transition-colors" title={language === 'zh-TW' ? "清除所有紀錄" : "Clear All"}>
+                        <Eraser className="w-4 h-4" />
+                    </button>
+                    <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
+                    <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
-            
-            {/* Toolbar */}
-            <div className="flex items-center gap-1">
-                <button onClick={handleSaveToJournal} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-celestial-gold transition-colors" title={language === 'zh-TW' ? "歸檔至萬能日誌" : "Archive to Journal"}>
-                    <Save className="w-4 h-4" />
-                </button>
-                <button onClick={handleExport} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-emerald-400 transition-colors" title={language === 'zh-TW' ? "匯出對話" : "Export Chat"}>
-                    <Download className="w-4 h-4" />
-                </button>
-                <button onClick={handleClearAll} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-red-400 transition-colors" title={language === 'zh-TW' ? "清除所有紀錄" : "Clear All"}>
-                    <Eraser className="w-4 h-4" />
-                </button>
-                <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
-                <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 transition-colors">
-                    <X className="w-5 h-5" />
-                </button>
+
+            {/* Persona Switcher */}
+            <div className="flex gap-2 p-1 bg-black/20 rounded-lg">
+                {(['orchestrator', 'analyst', 'strategist'] as AiPersona[]).map(p => (
+                    <button
+                        key={p}
+                        onClick={() => setPersona(p)}
+                        className={`flex-1 py-1.5 text-[10px] uppercase font-bold rounded-md transition-all flex items-center justify-center gap-1.5
+                            ${persona === p ? 'bg-white/10 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}
+                        `}
+                    >
+                        {p === 'orchestrator' && <Bot className="w-3 h-3" />}
+                        {p === 'analyst' && <Search className="w-3 h-3" />}
+                        {p === 'strategist' && <UserCog className="w-3 h-3" />}
+                        {p}
+                    </button>
+                ))}
             </div>
           </div>
 

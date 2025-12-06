@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { AlertTriangle, Users, TrendingUp, Globe, ShieldAlert, Target, ArrowRight, Layers, BrainCircuit, Sparkles } from 'lucide-react';
+import { AlertTriangle, Users, TrendingUp, Globe, ShieldAlert, Target, ArrowRight, Layers, BrainCircuit, Sparkles, X } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useCompany } from './providers/CompanyProvider';
+import { streamChat } from '../services/ai-service';
+import { marked } from 'marked';
 
 interface StrategyHubProps {
   language: Language;
@@ -17,6 +19,11 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
   const { addToast } = useToast();
   const { esgScores, carbonCredits } = useCompany();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Risk Analysis State
+  const [analyzingRisk, setAnalyzingRisk] = useState<string | null>(null);
+  const [riskInsight, setRiskInsight] = useState<string>('');
+  const [isAiStreaming, setIsAiStreaming] = useState(false);
 
   // Simulate Data Fetching
   useEffect(() => {
@@ -28,6 +35,27 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
 
   const handleAiTrigger = () => {
      addToast('info', 'AI Strategy Agent analyzing heatmaps...', 'Neural Link');
+  };
+
+  const handleRiskClick = async (riskName: string) => {
+      setAnalyzingRisk(riskName);
+      setRiskInsight('');
+      setIsAiStreaming(true);
+      
+      const prompt = isZh 
+        ? `針對「${riskName}」這個企業風險，請提供三個具體的減緩策略 (Mitigation Plan)。請條列式回答。`
+        : `Provide 3 concrete mitigation strategies for the corporate risk: "${riskName}". Bullet points.`;
+
+      try {
+          const stream = streamChat(prompt, language);
+          for await (const chunk of stream) {
+              setRiskInsight(prev => prev + chunk);
+          }
+      } catch (e) {
+          setRiskInsight('AI Analysis Failed.');
+      } finally {
+          setIsAiStreaming(false);
+      }
   };
 
   // Dynamic Risk Calculation Logic
@@ -116,7 +144,7 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
   ];
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in relative">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
@@ -183,12 +211,6 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
             </div>
           ) : (
             <>
-              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="flex items-center gap-2 text-xs text-celestial-purple bg-white/5 px-2 py-1 rounded border border-white/10 hover:bg-white/10">
-                    <Sparkles className="w-3 h-3" /> AI Simulation
-                  </button>
-              </div>
-              
               <div className="flex justify-between items-center mb-6 relative z-10">
                 <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                   <Globe className="w-5 h-5 text-celestial-blue" />
@@ -225,24 +247,23 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
                     </div>
                     
                     {risks.map((risk, i) => (
-                        <div key={i} className={`
-                            relative group flex items-center justify-center rounded-xl border backdrop-blur-md cursor-pointer hover:scale-110 transition-all duration-300 shadow-lg
-                            ${getHeatmapColor(risk.level)}
-                            ${risk.probability === 'high' ? 'col-start-3' : risk.probability === 'medium' ? 'col-start-2' : 'col-start-1'}
-                            ${risk.level === 'critical' || risk.level === 'high' ? 'row-start-1' : risk.level === 'medium' ? 'row-start-2' : 'row-start-3'}
-                        `}>
+                        <div 
+                            key={i} 
+                            onClick={() => handleRiskClick(risk.name)}
+                            className={`
+                                relative group flex items-center justify-center rounded-xl border backdrop-blur-md cursor-pointer hover:scale-110 transition-all duration-300 shadow-lg
+                                ${getHeatmapColor(risk.level)}
+                                ${risk.probability === 'high' ? 'col-start-3' : risk.probability === 'medium' ? 'col-start-2' : 'col-start-1'}
+                                ${risk.level === 'critical' || risk.level === 'high' ? 'row-start-1' : risk.level === 'medium' ? 'row-start-2' : 'row-start-3'}
+                            `}
+                        >
                             <span className="text-[10px] sm:text-xs font-bold text-white text-center px-2 drop-shadow-md leading-tight">{risk.name}</span>
                             
-                            {/* Hover Tooltip - Agentic Style */}
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-slate-900/95 border border-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 p-3 text-center pointer-events-none shadow-2xl z-20 backdrop-blur-xl translate-y-2 group-hover:translate-y-0">
-                                <div className="text-xs font-bold text-white mb-1 border-b border-white/10 pb-1 flex justify-between items-center">
-                                    {risk.name}
-                                    <Sparkles className="w-3 h-3 text-celestial-gold" />
-                                </div>
-                                <div className="text-[10px] text-gray-400 mb-1">Impact: {risk.level.toUpperCase()}</div>
-                                <div className="flex items-center justify-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 py-1 px-2 rounded-full mt-1">
-                                    <ShieldAlert className="w-3 h-3" /> Mitigation Active
-                                </div>
+                            {/* Hover Tooltip - Click Prompt */}
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-32 bg-black/80 border border-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 text-center pointer-events-none z-20 backdrop-blur-xl translate-y-2 group-hover:translate-y-0">
+                                <span className="text-[10px] text-white flex items-center justify-center gap-1">
+                                    <Sparkles className="w-3 h-3 text-celestial-gold" /> AI Analysis
+                                </span>
                             </div>
                         </div>
                     ))}
@@ -294,6 +315,33 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
           </div>
         </div>
       </div>
+
+      {/* AI Insight Overlay (Triggered by Heatmap Click) */}
+      {analyzingRisk && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
+              <div className="w-full max-w-lg bg-slate-800 border border-celestial-purple/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                  <div className="p-4 bg-celestial-purple/20 border-b border-celestial-purple/30 flex justify-between items-center">
+                      <h3 className="font-bold text-white flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-celestial-gold" />
+                          AI Risk Analysis: {analyzingRisk}
+                      </h3>
+                      <button onClick={() => setAnalyzingRisk(null)} className="p-1 hover:bg-white/10 rounded-full">
+                          <X className="w-5 h-5 text-white" />
+                      </button>
+                  </div>
+                  <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-900/50 flex-1">
+                      {isAiStreaming && !riskInsight ? (
+                          <div className="flex flex-col items-center justify-center py-12 gap-4">
+                              <BrainCircuit className="w-12 h-12 text-celestial-purple animate-pulse" />
+                              <span className="text-sm text-gray-400 animate-pulse">Consulting Strategic Agent...</span>
+                          </div>
+                      ) : (
+                          <div className="markdown-content text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(riskInsight) as string }} />
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };

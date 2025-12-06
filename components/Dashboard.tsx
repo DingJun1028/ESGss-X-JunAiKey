@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getMockMetrics, CHART_DATA, TRANSLATIONS } from '../constants';
-import { Wind, Activity, FileText, Zap, BrainCircuit, LayoutTemplate, Plus, Trash2, Grid, X } from 'lucide-react';
+import { Wind, Activity, FileText, Zap, BrainCircuit, LayoutTemplate, Plus, Trash2, Grid, X, Globe, Map } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -11,6 +11,7 @@ import { ChartSkeleton } from './ChartSkeleton';
 import { useToast } from '../contexts/ToastContext';
 import { analyzeDataAnomaly } from '../services/ai-service';
 import { useCompany } from './providers/CompanyProvider';
+import { GlobalOperations } from './GlobalOperations';
 
 interface DashboardProps {
   language: Language;
@@ -60,8 +61,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
   const { customWidgets, addCustomWidget, removeCustomWidget, esgScores, totalScore } = useCompany();
   const [isLoading, setIsLoading] = useState(true);
   
-  // View State: 'executive' (Default) or 'custom' (My Dashboard)
-  const [viewMode, setViewMode] = useState<'executive' | 'custom'>('executive');
+  // View State: 'executive' (Default), 'global' (Map), or 'custom' (My Dashboard)
+  const [viewMode, setViewMode] = useState<'executive' | 'global' | 'custom'>('executive');
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
 
   // Simulate Data Fetching
@@ -104,7 +105,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
   };
 
   // --- Map Provider Data to Metrics ---
-  // This allows changes in "Settings" (CompanyProvider) to reflect on the Dashboard.
   const liveMetrics = metrics.map(m => {
       const labelText = typeof m.label === 'string' ? m.label : m.label.text;
       
@@ -189,93 +189,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
     </>
   );
 
-  // --- Custom View (My Dashboard) ---
-  const renderCustomView = () => (
-    <div className="space-y-6">
-        {customWidgets.length === 0 ? (
-            <div className="p-12 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-gray-500">
-                <LayoutTemplate className="w-12 h-12 mb-4 opacity-50" />
-                <p>Your dashboard is empty.</p>
-                <button onClick={() => setIsCatalogOpen(true)} className="mt-4 px-4 py-2 bg-celestial-emerald/20 text-celestial-emerald rounded-lg hover:bg-celestial-emerald/30 transition-colors">
-                    Add Your First Widget
-                </button>
-            </div>
-        ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {customWidgets.map((widget) => {
-                    // Logic to render specific widgets
-                    let content = null;
-                    const colSpan = widget.gridSize === 'medium' ? 'lg:col-span-2' : widget.gridSize === 'large' ? 'lg:col-span-3' : 'lg:col-span-1';
-                    
-                    if (widget.type === 'kpi_card') {
-                        // Use liveMetrics to support dynamic updates even in custom widgets
-                        const m = liveMetrics.find(x => x.id === widget.config?.metricId) || liveMetrics[0];
-                        content = (
-                            <OmniEsgCell
-                                id={m.id}
-                                mode="card"
-                                label={m.label}
-                                value={m.value}
-                                color={m.color}
-                                icon={getIcon(m.color)}
-                                traits={m.traits}
-                                confidence="high"
-                                onAiAnalyze={() => handleAiAnalyze(typeof m.label === 'string' ? m.label : m.label.text)}
-                            />
-                        );
-                    } else if (widget.type === 'chart_area') {
-                        content = (
-                            <div className="glass-panel p-6 rounded-2xl h-full border-white/5 flex flex-col">
-                                <h3 className="text-lg font-semibold text-white mb-4">{widget.title}</h3>
-                                <div className="flex-1 w-full min-h-[250px]">
-                                    <MainChartWidget />
-                                </div>
-                            </div>
-                        );
-                    } else if (widget.type === 'feed_list') {
-                        content = (
-                            <div className="glass-panel p-6 rounded-2xl h-full border-white/5">
-                                <h3 className="text-lg font-semibold text-white mb-4">{widget.title}</h3>
-                                <FeedWidget handleAiAnalyze={handleAiAnalyze} />
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div key={widget.id} className={`${colSpan} relative group`}>
-                             {content}
-                             <button 
-                                onClick={() => removeCustomWidget(widget.id)}
-                                className="absolute top-2 right-2 p-1.5 bg-red-500/20 text-red-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/40 z-20"
-                                title="Remove Widget"
-                             >
-                                <Trash2 className="w-3 h-3" />
-                             </button>
-                        </div>
-                    );
-                })}
-                 <button 
-                    onClick={() => setIsCatalogOpen(true)}
-                    className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/5 rounded-2xl text-gray-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all min-h-[200px]"
-                >
-                    <Plus className="w-8 h-8 mb-2" />
-                    <span>Add Widget</span>
-                </button>
-            </div>
-        )}
-    </div>
-  );
-
   return (
     <div className="space-y-8 animate-fade-in relative">
       {/* Header & Toggle */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-             {viewMode === 'executive' ? t.title : (language === 'zh-TW' ? '我的儀表板' : 'My Dashboard')}
+             {viewMode === 'executive' ? t.title : viewMode === 'global' ? (language === 'zh-TW' ? '全球戰情室' : 'Global Operations') : (language === 'zh-TW' ? '我的儀表板' : 'My Dashboard')}
              {!isLoading && <span className="text-[10px] px-2 py-1 bg-celestial-emerald/10 text-celestial-emerald border border-celestial-emerald/20 rounded-full animate-pulse">LIVE SYNC</span>}
           </h2>
-          <p className="text-gray-400">{viewMode === 'executive' ? t.subtitle : (language === 'zh-TW' ? '自訂您的專屬監控視圖' : 'Customize your monitoring view')}</p>
+          <p className="text-gray-400">{viewMode === 'executive' ? t.subtitle : viewMode === 'global' ? 'Global Facility Monitoring' : (language === 'zh-TW' ? '自訂您的專屬監控視圖' : 'Customize your monitoring view')}</p>
         </div>
         <div className="flex bg-slate-900/50 p-1 rounded-xl border border-white/10 backdrop-blur-md">
             <button 
@@ -283,20 +206,124 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'executive' ? 'bg-celestial-purple text-white shadow-lg shadow-purple-500/20' : 'text-gray-400 hover:text-white'}`}
             >
                 <LayoutTemplate className="w-4 h-4" />
-                {language === 'zh-TW' ? '企業視圖' : 'Executive'}
+                {language === 'zh-TW' ? '企業視圖' : 'Exec'}
+            </button>
+            <button 
+                onClick={() => setViewMode('global')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'global' ? 'bg-celestial-blue text-white shadow-lg shadow-blue-500/20' : 'text-gray-400 hover:text-white'}`}
+            >
+                <Globe className="w-4 h-4" />
+                {language === 'zh-TW' ? '全球地圖' : 'Global'}
             </button>
             <button 
                 onClick={() => setViewMode('custom')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'custom' ? 'bg-celestial-emerald text-white shadow-lg shadow-emerald-500/20' : 'text-gray-400 hover:text-white'}`}
             >
                 <Grid className="w-4 h-4" />
-                {language === 'zh-TW' ? '我的儀表板' : 'My View'}
+                {language === 'zh-TW' ? '我的' : 'My View'}
             </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      {viewMode === 'executive' ? renderExecutiveView() : renderCustomView()}
+      {/* Content Rendering based on View Mode */}
+      {viewMode === 'executive' && renderExecutiveView()}
+      
+      {viewMode === 'global' && (
+          <div className="animate-fade-in">
+              <GlobalOperations />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                  {/* Additional Global Metrics */}
+                  <OmniEsgCell mode="card" label="Total Facilities" value="12" subValue="Across 3 Regions" icon={Map} color="blue" />
+                  <OmniEsgCell mode="card" label="Global Efficiency" value="94.2%" trend={{value: 2.1, direction: 'up'}} icon={Zap} color="emerald" traits={['optimization']} />
+                  <div className="glass-panel p-6 rounded-2xl border-white/5 flex flex-col justify-center items-center text-center">
+                      <div className="text-sm text-gray-400 mb-2">Next Audit</div>
+                      <div className="text-xl font-bold text-white">12 Days</div>
+                      <div className="text-xs text-celestial-gold mt-1">Berlin Plant</div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {viewMode === 'custom' && (
+        <div className="space-y-6">
+            {customWidgets.length === 0 ? (
+                <div className="p-12 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center text-gray-500">
+                    <LayoutTemplate className="w-12 h-12 mb-4 opacity-50" />
+                    <p>Your dashboard is empty.</p>
+                    <button onClick={() => setIsCatalogOpen(true)} className="mt-4 px-4 py-2 bg-celestial-emerald/20 text-celestial-emerald rounded-lg hover:bg-celestial-emerald/30 transition-colors">
+                        Add Your First Widget
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {customWidgets.map((widget) => {
+                        let content = null;
+                        const colSpan = widget.gridSize === 'medium' ? 'lg:col-span-2' : widget.gridSize === 'large' ? 'lg:col-span-3' : 'lg:col-span-1';
+                        
+                        if (widget.type === 'kpi_card') {
+                            const m = liveMetrics.find(x => x.id === widget.config?.metricId) || liveMetrics[0];
+                            content = (
+                                <OmniEsgCell
+                                    id={m.id}
+                                    mode="card"
+                                    label={m.label}
+                                    value={m.value}
+                                    color={m.color}
+                                    icon={getIcon(m.color)}
+                                    traits={m.traits}
+                                    confidence="high"
+                                    onAiAnalyze={() => handleAiAnalyze(typeof m.label === 'string' ? m.label : m.label.text)}
+                                />
+                            );
+                        } else if (widget.type === 'chart_area') {
+                            content = (
+                                <div className="glass-panel p-6 rounded-2xl h-full border-white/5 flex flex-col">
+                                    <h3 className="text-lg font-semibold text-white mb-4">{widget.title}</h3>
+                                    <div className="flex-1 w-full min-h-[250px]">
+                                        <MainChartWidget />
+                                    </div>
+                                </div>
+                            );
+                        } else if (widget.type === 'feed_list') {
+                            content = (
+                                <div className="glass-panel p-6 rounded-2xl h-full border-white/5">
+                                    <h3 className="text-lg font-semibold text-white mb-4">{widget.title}</h3>
+                                    <FeedWidget handleAiAnalyze={handleAiAnalyze} />
+                                </div>
+                            );
+                        } else if (widget.type === 'mini_map') {
+                             // Re-use simplified map for custom dashboard
+                             content = (
+                                 <div className="glass-panel rounded-2xl h-full overflow-hidden border-white/5 relative h-[300px]">
+                                     <GlobalOperations />
+                                 </div>
+                             )
+                        }
+
+                        return (
+                            <div key={widget.id} className={`${colSpan} relative group`}>
+                                 {content}
+                                 <button 
+                                    onClick={() => removeCustomWidget(widget.id)}
+                                    className="absolute top-2 right-2 p-1.5 bg-red-500/20 text-red-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/40 z-20"
+                                    title="Remove Widget"
+                                 >
+                                    <Trash2 className="w-3 h-3" />
+                                 </button>
+                            </div>
+                        );
+                    })}
+                     <button 
+                        onClick={() => setIsCatalogOpen(true)}
+                        className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/5 rounded-2xl text-gray-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all min-h-[200px]"
+                    >
+                        <Plus className="w-8 h-8 mb-2" />
+                        <span>Add Widget</span>
+                    </button>
+                </div>
+            )}
+        </div>
+      )}
 
       {/* Widget Catalog Modal */}
       {isCatalogOpen && (
@@ -343,17 +370,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
                              <Plus className="w-5 h-5 text-gray-500 group-hover:text-white ml-auto" />
                       </button>
 
-                      {/* Feed Widget */}
+                      {/* Map Widget */}
                       <button 
-                        onClick={() => handleAddWidget('feed_list', 'Intelligence Feed', {}, 'medium')}
-                        className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-celestial-gold/10 hover:border-celestial-gold/30 transition-all text-left group md:col-span-2"
+                        onClick={() => handleAddWidget('mini_map', 'Global View', {}, 'medium')}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-celestial-blue/10 hover:border-celestial-blue/30 transition-all text-left group md:col-span-2"
                       >
-                             <div className="p-2 rounded-lg bg-gold-500/10 text-amber-400">
-                                 <Zap className="w-5 h-5" />
+                             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                                 <Globe className="w-5 h-5" />
                              </div>
                              <div>
-                                 <div className="font-bold text-white">Intelligence Feed</div>
-                                 <div className="text-xs text-gray-400">List • Medium (2 cols)</div>
+                                 <div className="font-bold text-white">Mini Global Map</div>
+                                 <div className="text-xs text-gray-400">Map • Medium (2 cols)</div>
                              </div>
                              <Plus className="w-5 h-5 text-gray-500 group-hover:text-white ml-auto" />
                       </button>

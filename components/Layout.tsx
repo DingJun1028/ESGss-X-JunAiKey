@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, GraduationCap, Search, Settings, Activity, Sun, Bell, Languages,
-  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home
+  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home, Radio
 } from 'lucide-react';
 import { View, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { useCompany } from './providers/CompanyProvider';
 import { useToast } from '../contexts/ToastContext';
+import { VoiceControl } from './VoiceControl';
 
 interface LayoutProps {
   currentView: View;
@@ -19,7 +20,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, language, onToggleLanguage, children }) => {
   const t = TRANSLATIONS[language];
-  const { userName, userRole, xp, level, goodwillBalance } = useCompany();
+  const { userName, userRole, xp, level, goodwillBalance, latestEvent, totalScore } = useCompany();
   const { notifications, clearNotifications } = useToast();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
@@ -28,16 +29,22 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   const nextLevelXp = level * 1000;
   const xpProgress = Math.min(100, Math.max(0, ((xp - currentLevelBaseXp) / 1000) * 100));
 
+  // Visual Alarm for Low Score
+  const isCritical = totalScore < 60;
+
   return (
-    <div className="min-h-screen bg-celestial-900 text-gray-200 relative overflow-hidden font-sans selection:bg-celestial-emerald/30">
+    <div className={`min-h-screen bg-celestial-900 text-gray-200 relative overflow-hidden font-sans selection:bg-celestial-emerald/30 transition-colors duration-1000 ${isCritical ? 'border-4 border-red-500/20' : ''}`}>
       
       {/* Background Ambience */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-celestial-purple/20 rounded-full blur-[120px] animate-blob" />
+        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] animate-blob ${isCritical ? 'bg-red-500/20' : 'bg-celestial-purple/20'}`} />
         <div className="absolute top-[20%] right-[-10%] w-[35%] h-[35%] bg-celestial-emerald/20 rounded-full blur-[120px] animate-blob animation-delay-2000" />
         <div className="absolute bottom-[-10%] left-[20%] w-[30%] h-[30%] bg-celestial-gold/10 rounded-full blur-[100px] animate-blob animation-delay-4000" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
       </div>
+
+      {/* Voice Control Interface */}
+      <VoiceControl onNavigate={onNavigate} language={language} />
 
       {/* Main Container */}
       <div className="relative z-10 flex h-screen">
@@ -88,10 +95,21 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           {/* Top Bar */}
           <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-slate-900/30 backdrop-blur-sm shrink-0 relative z-30">
-            <div className="md:hidden flex items-center gap-2">
-                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-celestial-emerald to-celestial-purple flex items-center justify-center">
-                    <Sun className="w-5 h-5 text-white" />
-                 </div>
+            <div className="flex items-center gap-4 flex-1">
+                <div className="md:hidden flex items-center gap-2">
+                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-celestial-emerald to-celestial-purple flex items-center justify-center">
+                        <Sun className="w-5 h-5 text-white" />
+                     </div>
+                </div>
+                
+                {/* Live Ticker */}
+                <div className="hidden lg:flex items-center gap-2 text-xs overflow-hidden max-w-lg bg-black/20 rounded-full px-3 py-1 border border-white/5">
+                    <Radio className="w-3 h-3 text-red-400 animate-pulse shrink-0" />
+                    <span className="text-gray-500 font-bold shrink-0">LIVE FEED:</span>
+                    <div className="animate-[slide-left_15s_linear_infinite] whitespace-nowrap text-gray-300">
+                        {latestEvent || "System Normal. Monitoring global sustainability indices..."}
+                    </div>
+                </div>
             </div>
             
             {/* Gamification HUD (Global Status Pod) */}
@@ -124,7 +142,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
                 </div>
             </div>
 
-            <div className="flex items-center gap-4 md:gap-6">
+            <div className="flex items-center gap-4 md:gap-6 ml-4">
                 <button 
                   onClick={onToggleLanguage}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-colors text-sm text-gray-300"

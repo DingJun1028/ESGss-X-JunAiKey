@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { Language } from '../types';
-import { ShieldCheck, Clock, Hash, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Language, AuditLogEntry } from '../types';
+import { ShieldCheck, Clock, Hash, Link as LinkIcon, AlertCircle, X, FileCheck, Calendar, User, Code } from 'lucide-react';
 import { useCompany } from './providers/CompanyProvider';
 
 interface AuditTrailProps {
@@ -11,12 +11,13 @@ interface AuditTrailProps {
 export const AuditTrail: React.FC<AuditTrailProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
   const { auditLogs } = useCompany();
+  const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
 
   // If logs are empty, show a placeholder
   const hasLogs = auditLogs.length > 0;
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in relative">
         <div className="flex items-center gap-4">
             <div className="p-3 bg-celestial-emerald/10 rounded-xl border border-celestial-emerald/20">
                  <ShieldCheck className="w-8 h-8 text-celestial-emerald" />
@@ -48,7 +49,11 @@ export const AuditTrail: React.FC<AuditTrailProps> = ({ language }) => {
                         </thead>
                         <tbody className="text-sm divide-y divide-white/5">
                             {auditLogs.map((log) => (
-                                <tr key={log.id} className="hover:bg-white/5 transition-colors group">
+                                <tr 
+                                    key={log.id} 
+                                    className="hover:bg-white/5 transition-colors group cursor-pointer"
+                                    onClick={() => setSelectedLog(log)}
+                                >
                                     <td className="p-4 pl-6 text-gray-300 flex items-center gap-2 whitespace-nowrap">
                                         <Clock className="w-3 h-3 text-gray-500" />
                                         {new Date(log.timestamp).toLocaleTimeString()} <span className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleDateString()}</span>
@@ -72,6 +77,63 @@ export const AuditTrail: React.FC<AuditTrailProps> = ({ language }) => {
                 </div>
             )}
         </div>
+
+        {/* Certificate Modal */}
+        {selectedLog && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedLog(null)}>
+                <div 
+                    className="w-full max-w-lg bg-white text-black rounded-2xl overflow-hidden shadow-2xl relative"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {/* Header Design */}
+                    <div className="h-2 bg-gradient-to-r from-emerald-500 to-blue-500" />
+                    <button onClick={() => setSelectedLog(null)} className="absolute top-4 right-4 p-1 hover:bg-gray-100 rounded-full transition-colors">
+                        <X className="w-5 h-5 text-gray-500" />
+                    </button>
+
+                    <div className="p-8 text-center">
+                        <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-emerald-100">
+                            <FileCheck className="w-8 h-8 text-emerald-600" />
+                        </div>
+                        
+                        <h3 className="text-2xl font-serif font-bold text-gray-900 mb-1">Digital Certificate of Authenticity</h3>
+                        <p className="text-gray-500 text-sm uppercase tracking-widest mb-8">Secured by JunAiKey Chain</p>
+
+                        <div className="space-y-4 text-left border-t border-b border-gray-100 py-6">
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-500 text-xs font-bold uppercase flex items-center gap-2"><Calendar className="w-3 h-3"/> Timestamp</span>
+                                <span className="font-mono text-sm">{new Date(selectedLog.timestamp).toISOString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-500 text-xs font-bold uppercase flex items-center gap-2"><User className="w-3 h-3"/> Signer</span>
+                                <span className="font-mono text-sm">{selectedLog.user}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-500 text-xs font-bold uppercase flex items-center gap-2"><ShieldCheck className="w-3 h-3"/> Action Type</span>
+                                <span className="font-bold text-sm bg-gray-100 px-2 py-1 rounded">{selectedLog.action}</span>
+                            </div>
+                            <div>
+                                <span className="text-gray-500 text-xs font-bold uppercase flex items-center gap-2 mb-1"><Code className="w-3 h-3"/> Transaction Hash</span>
+                                <div className="font-mono text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 break-all">
+                                    {selectedLog.hash}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex items-center justify-between">
+                            {/* Simulated QR Code */}
+                            <div className="w-16 h-16 bg-gray-900 text-white flex items-center justify-center text-[8px] font-mono leading-none break-all p-1">
+                                {selectedLog.hash.substring(0,64)}
+                            </div>
+                            <div className="text-right">
+                                <div className="text-emerald-600 font-bold font-serif text-lg">Verified</div>
+                                <div className="text-xs text-gray-400">Block Height: #{Math.floor(selectedLog.timestamp / 10000)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 };

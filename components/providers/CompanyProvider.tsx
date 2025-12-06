@@ -74,6 +74,9 @@ interface CompanyContextType {
   // Audit Logs
   auditLogs: AuditLogEntry[];
   addAuditLog: (action: string, details: string) => void;
+  
+  // System Simulation
+  latestEvent: string | null; // For the ticker
 }
 
 const DEFAULT_SCORES: EsgScores = {
@@ -177,6 +180,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [esgScores, setEsgScores] = useState<EsgScores>(DEFAULT_SCORES);
   const [customWidgets, setCustomWidgets] = useState<DashboardWidget[]>(DEFAULT_WIDGETS);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [latestEvent, setLatestEvent] = useState<string | null>(null);
 
   // Load from LocalStorage on Mount
   useEffect(() => {
@@ -218,6 +222,45 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem('esgss_storage_v1', JSON.stringify(state));
     }
   }, [companyName, userName, userRole, budget, carbonCredits, goodwillBalance, xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, isInitialized]);
+
+  // --- SYSTEM HEARTBEAT SIMULATION ---
+  useEffect(() => {
+      if (!isInitialized) return;
+
+      const interval = setInterval(() => {
+          // 1. Carbon Data Fluctuation (IoT Simulation)
+          // Randomly fluctuate Scope 1 by -2 to +3 units (simulating sensor noise or real-time usage)
+          const fluctuation = Math.floor(Math.random() * 6) - 2; 
+          if (fluctuation !== 0) {
+              setCarbonData(prev => ({
+                  ...prev,
+                  scope1: Math.max(0, prev.scope1 + fluctuation)
+              }));
+          }
+
+          // 2. Random Events (10% chance every 10 seconds)
+          if (Math.random() < 0.1) {
+              const events = [
+                  { text: 'IoT Sensor: Anomaly detected in Plant B (+2% energy)', impact: 'env', val: -0.5 },
+                  { text: 'Market: Carbon Price surged to €92/t', impact: 'budget', val: 0 },
+                  { text: 'News: Competitor announced Net Zero 2030', impact: 'soc', val: 0 },
+                  { text: 'System: Automated Efficiency Optimization (+0.1 Score)', impact: 'env', val: 0.1 },
+                  { text: 'Supply Chain: Vendor Data Validated', impact: 'gov', val: 0.2 }
+              ];
+              const event = events[Math.floor(Math.random() * events.length)];
+              
+              setLatestEvent(event.text);
+              addAuditLog('System Event', event.text);
+
+              if (event.impact === 'env') updateEsgScore('environmental', esgScores.environmental + event.val);
+              if (event.impact === 'gov') updateEsgScore('governance', esgScores.governance + event.val);
+          }
+
+      }, 10000); // Heartbeat every 10s
+
+      return () => clearInterval(interval);
+  }, [isInitialized, esgScores]);
+
 
   // Derived Level (1 Level per 1000 XP)
   const level = Math.floor(xp / 1000) + 1;
@@ -307,7 +350,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateEsgScore = (category: keyof EsgScores, value: number) => {
     setEsgScores(prev => ({
       ...prev,
-      [category]: Math.min(100, Math.max(0, value)) // Clamp between 0-100
+      [category]: parseFloat(Math.min(100, Math.max(0, value)).toFixed(1)) // Clamp and round
     }));
   };
 
@@ -347,7 +390,8 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       quests, todos, completeQuest, updateQuestStatus, addTodo, toggleTodo, deleteTodo,
       esgScores, updateEsgScore, totalScore,
       carbonData, updateCarbonData,
-      resetData, customWidgets, addCustomWidget, removeCustomWidget, auditLogs, addAuditLog
+      resetData, customWidgets, addCustomWidget, removeCustomWidget, auditLogs, addAuditLog,
+      latestEvent
     }}>
       {children}
     </CompanyContext.Provider>
