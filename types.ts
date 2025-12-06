@@ -158,3 +158,15 @@ export interface SystemHealth {
   /** Latency in milliseconds */
   latency: number;
 }
+
+/**
+ * Structure for Sustainability Report Sections
+ */
+export interface ReportSection {
+  id: string;
+  title: string;
+  subSections?: ReportSection[];
+  template?: string;
+  example?: string;
+  griStandards?: string;
+}

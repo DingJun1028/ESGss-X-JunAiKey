@@ -47,7 +47,10 @@ const getSystemPrompt = (language: Language, mode: 'chat' | 'analyst' | 'writer'
 
     switch (mode) {
         case 'writer':
-            return `${baseIdentity} Role: Expert ESG Report Writer. Task: Draft professional GRI/SASB reports. ${commonRules}`;
+            return `${baseIdentity} Role: Expert ESG Report Writer. You are tasked with writing specific sections of a Sustainability Report following GRI standards. 
+            Tone: Professional, Corporate, Transparent, and Impactful. 
+            Do NOT make up false data if not provided; use placeholders like [DATA] if needed.
+            ${commonRules}`;
         case 'analyst':
             return `${baseIdentity} Role: Senior Data Scientist. Task: Analyze anomalies using Double Materiality. ${commonRules}`;
         case 'forecaster':
@@ -164,22 +167,49 @@ export const performMapQuery = async (query: string, language: Language = 'en-US
     }
 };
 
-// ... keep existing specialized functions (generateReportChapter, analyzeDataAnomaly, predictFutureTrends) 
-// but ensure they use gemini-2.5-flash for standard tasks or 3-pro if complex logic is needed.
-// For now, we keep them on flash for speed unless specified otherwise.
-
-export const generateReportChapter = async (sectionTitle: string, contextData: any, language: Language = 'en-US'): Promise<string> => {
-  if (!ai) return "Simulated Report Content...";
+/**
+ * Generates a specific section of the Sustainability Report using templates and context.
+ */
+export const generateReportChapter = async (
+    sectionTitle: string, 
+    template: string, 
+    example: string,
+    contextData: any, 
+    language: Language = 'en-US'
+): Promise<string> => {
+  if (!ai) return "Simulated Report Content... (Missing API Key)";
+  
   try {
     const systemPrompt = getSystemPrompt(language, 'writer');
-    const prompt = `Draft the "${sectionTitle}" for the ESG Report. Data: ${JSON.stringify(contextData)}`;
+    
+    const prompt = `
+      Task: Write the "${sectionTitle}" section of the ESG Report.
+      
+      1. **Reference Template**: Use this structure: 
+      """${template}"""
+      
+      2. **Reference Example (Style Guide)**: Mimic this tone and depth:
+      """${example}"""
+      
+      3. **Company Data (Context)**: 
+      ${JSON.stringify(contextData)}
+      
+      Requirements:
+      - Fill in the template brackets 【】 with provided data or realistic placeholders based on context.
+      - Ensure compliance with the implied GRI standards in the template.
+      - Output in Markdown format.
+    `;
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: { systemInstruction: systemPrompt }
     });
     return response.text || "Failed to generate.";
-  } catch (error) { throw error; }
+  } catch (error) { 
+      console.error("Report Generation Error:", error);
+      throw error; 
+  }
 };
 
 export const analyzeDataAnomaly = async (metric: string, val: any, base: any, ctx: string, lang: Language = 'en-US'): Promise<string> => {

@@ -1,4 +1,5 @@
-import { Metric, Course, SystemHealth, Language } from './types';
+
+import { Metric, Course, SystemHealth, Language, ReportSection } from './types';
 
 /**
  * Translation dictionary for the application.
@@ -156,6 +157,137 @@ export const TRANSLATIONS = {
     }
   }
 };
+
+/**
+ * Sustainability Report Structure Definition based on the Whitepaper.
+ */
+export const REPORT_STRUCTURE: ReportSection[] = [
+  {
+    id: '1',
+    title: '1 關於本報告書 (About Report)',
+    subSections: [
+      {
+        id: '1.01',
+        title: '1.01 經營者的話 (Message from Management)',
+        template: '【請依公司實際情形填寫】',
+        example: '當今全球面臨著多重挑戰，包括新冠疫情對全球經濟和社會造成的衝擊...我們需要全球共同努力應對，加強環境、社會、治理（ESG）行動...',
+        griStandards: 'GRI 2-22'
+      },
+      {
+        id: '1.02',
+        title: '1.02 關於本公司 (About Company)',
+        template: '1.公司簡介：【公司名稱】成立於【XXXX】年... 2.價值鏈簡介：【請說明價值鏈上下游供應商...】',
+        example: 'ABC公司成立於1995年，專注於電子產品研發與製造...價值鏈涵蓋上下游供應商、客戶及合作夥伴...',
+        griStandards: 'GRI 2-1, GRI 2-6'
+      },
+      {
+        id: '1.03',
+        title: '1.03 報告書資訊 (Report Info)',
+        template: '本報吿書依 GRI 準則及相關規範撰寫。報導期間與合併財務報表一致...',
+        griStandards: 'GRI 2-2, 2-3, 2-4, 2-5'
+      }
+    ]
+  },
+  {
+    id: '2',
+    title: '2 永續經營 (Sustainable Management)',
+    subSections: [
+      {
+        id: '2.01',
+        title: '2.01 永續發展策略 (Strategy)',
+        template: '本公司永續發展主要策略為：環境保護... 技術創新... 企業治理... 社會責任...',
+        example: '本公司的使命是「透過創新科技，驅動綠色能源轉型」...我們制定了明確的短、中期策略藍圖...',
+        griStandards: 'GRI 2-22'
+      },
+      {
+        id: '2.02',
+        title: '2.02 推動永續發展機制 (Governance)',
+        template: '為實踐ESG願景與使命，【公司名稱】成立【永續發展委員會名稱】...',
+        griStandards: 'GRI 2-9, 2-13, 2-16'
+      },
+      {
+        id: '2.03',
+        title: '2.03 董事會及功能性委員會 (Board)',
+        template: '董事會負責指導長期經營策略與具有監督責任...本公司董事會由【XX】位董事組成...',
+        griStandards: 'GRI 2-9, 2-10, 2-11, 2-12, 2-14~2-21'
+      }
+    ]
+  },
+  {
+    id: '3',
+    title: '3 利害關係人與重大議題 (Stakeholders)',
+    subSections: [
+      {
+        id: '3.01',
+        title: '3.01 利害關係人議合 (Engagement)',
+        template: '本公司參考AA1000 SES標準鑑別利害關係人...提供多元溝通管道...',
+        griStandards: 'GRI 2-29'
+      },
+      {
+        id: '3.02',
+        title: '3.02 決定重大主題的流程 (Materiality Process)',
+        template: '依循GRI 3：重大主題2021，執行步驟如下：一、了解組織脈絡...二、鑑別衝擊...三、排定順序...',
+        griStandards: 'GRI 3-1'
+      },
+      {
+        id: '3.03',
+        title: '3.03 重大主題列表 (Topics List)',
+        template: '歸納出本公司共【X】項重大主題，包括【列示所鑑別之重大主題】...',
+        griStandards: 'GRI 3-2'
+      }
+    ]
+  },
+  {
+    id: '4',
+    title: '4 治理面 (Governance)',
+    subSections: [
+      { id: '4.01', title: '4.01 經濟績效 (Economic)', template: '【營收表現、直接經濟價值分配...】', griStandards: 'GRI 201' },
+      { id: '4.03', title: '4.03 誠信經營 (Integrity)', template: '本公司訂定誠信經營守則...反貪腐風險評估...', griStandards: 'GRI 205, 206' },
+      { id: '4.06', title: '4.06 資訊安全 (InfoSec)', template: '本公司訂立資安事件通報標準流程...ISO 27001認證...', griStandards: 'GRI 418' },
+      { id: '4.09', title: '4.09 供應商管理 (Supply Chain)', template: '本公司共有【XX】家合格供應商，在地採購比為【XX】%...', griStandards: 'GRI 204, 308, 414' }
+    ]
+  },
+  {
+    id: '5',
+    title: '5 社會面 (Social)',
+    subSections: [
+      { id: '5.01', title: '5.01 人力發展 (Human Capital)', template: '截至年底，全體員工共計【XX】人...女性占比【XX】%...', griStandards: 'GRI 401, 404, 405' },
+      { id: '5.02', title: '5.02 職業安全及衛生 (OHS)', template: '依職業安全衛生法規定，建立ISO 45001管理系統...', griStandards: 'GRI 403' },
+      { id: '5.03', title: '5.03 社區參與 (Community)', template: '本公司秉持取之社會用之社會精神，投入【XX】專案...', griStandards: 'GRI 413' }
+    ]
+  },
+  {
+    id: '6',
+    title: '6 環境面 (Environmental)',
+    subSections: [
+      { 
+        id: '6.01', 
+        title: '6.01 氣候變遷 (Climate Change)', 
+        template: '1.氣候監督及治理架構... 2.氣候策略(TCFD框架)... 3.風險鑑別...', 
+        griStandards: 'GRI 201-2' 
+      },
+      { 
+        id: '6.02', 
+        title: '6.02 溫室氣體排放 (GHG Emissions)', 
+        template: '本公司依循 ISO 14064-1 盤查，範疇一排放【X】tCO2e，範疇二【X】tCO2e...', 
+        griStandards: 'GRI 305' 
+      },
+      { 
+        id: '6.03', 
+        title: '6.03 能源管理 (Energy)', 
+        template: '導入能源管理系統...【報告年度】消耗能源總量為【X】GJ...', 
+        griStandards: 'GRI 302' 
+      }
+    ]
+  },
+  {
+    id: '7',
+    title: '7 附錄 (Appendices)',
+    subSections: [
+      { id: '7.01', title: '7.01 GRI 內容索引表', template: '【GRI Content Index Table】', griStandards: '' }
+    ]
+  }
+];
 
 /**
  * Generates mock metric data for the dashboard.
