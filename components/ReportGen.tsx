@@ -1,18 +1,71 @@
-
 import React, { useState, useRef } from 'react';
 import { useCompany } from './providers/CompanyProvider';
 import { generateReportChapter, auditReportContent } from '../services/ai-service';
 import { Language, ReportSection } from '../types';
 import { REPORT_STRUCTURE } from '../constants';
-import { FileText, Sparkles, Download, Loader2, Save, ChevronRight, BookOpen, ShieldCheck } from 'lucide-react';
+import { FileText, Sparkles, Download, Loader2, Save, ChevronRight, BookOpen, ShieldCheck, CheckCircle } from 'lucide-react';
 import { marked } from 'marked';
 import { useToast } from '../contexts/ToastContext';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
 interface ReportGenProps {
   language: Language;
 }
+
+// ----------------------------------------------------------------------
+// Agent: Chapter Node (The Scribe)
+// ----------------------------------------------------------------------
+interface ChapterNodeProps extends InjectedProxyProps {
+    section: ReportSection; // Actually a sub-section
+    isActive: boolean;
+    hasContent: boolean;
+    onClick: () => void;
+}
+
+const ChapterNodeBase: React.FC<ChapterNodeProps> = ({ 
+    section, isActive, hasContent, onClick, 
+    adaptiveTraits, trackInteraction, isAgentActive 
+}) => {
+    
+    // Agent Traits
+    const isOptimized = adaptiveTraits?.includes('optimization'); // AI Content Generated
+    const isEvolved = adaptiveTraits?.includes('evolution'); // High Interaction
+    
+    return (
+        <button 
+            onClick={() => { onClick(); trackInteraction?.('click'); }}
+            className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 group relative
+                ${isActive ? 'bg-celestial-emerald/10 text-celestial-emerald font-medium' : 'text-gray-500 hover:text-gray-300'}
+            `}
+        >
+            <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 
+                ${hasContent ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}
+                ${isOptimized ? 'animate-pulse scale-125' : ''}
+            `} />
+            
+            <span className="truncate flex-1">{section.title}</span>
+            
+            {/* Agent Status Icon */}
+            {isAgentActive && (
+                <Sparkles className="w-3 h-3 text-celestial-gold animate-spin-slow" />
+            )}
+            
+            {/* Completion Check */}
+            {hasContent && isEvolved && (
+                <CheckCircle className="w-3 h-3 text-emerald-500 absolute right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+            )}
+        </button>
+    );
+};
+
+const ChapterAgent = withUniversalProxy(ChapterNodeBase);
+
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
 
 export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
   const { companyName, esgScores, totalScore, carbonCredits, budget } = useCompany();
@@ -78,7 +131,13 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
       if (!reportRef.current) return;
       setIsExporting(true);
       const element = reportRef.current;
-      const opt = { margin: 10, filename: `Report_${new Date().getFullYear()}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      const opt = { 
+          margin: 10, 
+          filename: `Report_${new Date().getFullYear()}.pdf`, 
+          image: { type: 'jpeg' as const, quality: 0.98 }, 
+          html2canvas: { scale: 2 }, 
+          jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const } 
+      };
       html2pdf().set(opt).from(element).save().then(() => { setIsExporting(false); addToast('success', 'PDF Downloaded.', 'System'); });
   };
 
@@ -111,10 +170,15 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
                             {chapter.subSections && (
                                 <div className="ml-2 mt-1 space-y-1 border-l border-white/10 pl-2">
                                     {chapter.subSections.map(sub => (
-                                        <button key={sub.id} onClick={() => setActiveSectionId(sub.id)} className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 ${activeSectionId === sub.id ? 'bg-celestial-emerald/10 text-celestial-emerald' : 'text-gray-500 hover:text-gray-300'}`}>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${generatedContent[sub.id] ? 'bg-emerald-500' : 'bg-gray-700'}`} />
-                                            <span className="truncate">{sub.title}</span>
-                                        </button>
+                                        <ChapterAgent 
+                                            key={sub.id}
+                                            id={sub.id} // Agent ID
+                                            label={sub.title}
+                                            section={sub}
+                                            isActive={activeSectionId === sub.id}
+                                            hasContent={!!generatedContent[sub.id]}
+                                            onClick={() => setActiveSectionId(sub.id)}
+                                        />
                                     ))}
                                 </div>
                             )}

@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { universalIntelligence } from '../../services/evolutionEngine';
 import { OmniEsgTrait, UniversalLabel } from '../../types';
 
@@ -12,20 +11,21 @@ export interface InjectedProxyProps {
   adaptiveTraits?: OmniEsgTrait[];
   trackInteraction?: (type: 'click' | 'hover' | 'edit' | 'ai-trigger', payload?: any) => void;
   isHighFrequency?: boolean;
-  isAgentActive?: boolean; // New prop indicating active agent connection
+  isAgentActive?: boolean;
 }
 
 /**
  * Universal Proxy HOC (萬能代理).
- * Transforms a passive UI Component into an Active Agent Node.
+ * Optimized: Uses targeted subscription to prevent global re-renders.
  */
 export const withUniversalProxy = <P extends object>(
   WrappedComponent: React.ComponentType<P & InjectedProxyProps>,
   config: ProxyConfig = { enableTelemetry: true, enableEvolution: true }
 ) => {
   const ComponentWithProxy = (props: P & { id?: string; label?: string | UniversalLabel; value?: any }) => {
-    // 1. Identity Resolution
-    const componentId = props.id || (typeof props.label === 'string' ? props.label : props.label?.id) || `anon-${Math.random().toString(36).substr(2,9)}`;
+    // 1. Identity Resolution (Stable Ref)
+    const idRef = useRef(props.id || (typeof props.label === 'string' ? props.label : props.label?.id) || `anon-${Math.random().toString(36).substr(2,9)}`);
+    const componentId = idRef.current;
     
     const [adaptiveTraits, setAdaptiveTraits] = useState<OmniEsgTrait[]>([]);
     const [isAgentActive, setIsAgentActive] = useState(false);
@@ -33,27 +33,25 @@ export const withUniversalProxy = <P extends object>(
     // 2. Registration & Neural Link (Mount)
     useEffect(() => {
       if (config.enableEvolution) {
-        // Register "I am here" to the Intelligence Library
+        // Register "I am here"
         universalIntelligence.registerNode(componentId, props.label || 'Unknown', props.value);
 
-        // Load initial state from the "Mind"
+        // Load initial state
         const node = universalIntelligence.getNode(componentId);
         if (node) {
             setAdaptiveTraits(node.traits);
             setIsAgentActive(node.traits.includes('learning'));
         }
 
-        // Subscribe to Brain waves (Updates)
-        const unsubscribe = universalIntelligence.subscribe((updatedNode) => {
-          if (updatedNode.id === componentId) {
+        // Optimized: Subscribe ONLY to this component's ID
+        const unsubscribe = universalIntelligence.subscribe(componentId, (updatedNode) => {
             setAdaptiveTraits(updatedNode.traits);
             setIsAgentActive(updatedNode.traits.includes('learning'));
-          }
         });
 
         return () => unsubscribe();
       }
-    }, [componentId]);
+    }, [componentId]); // Depend only on stable ID
 
     // 3. Sense Input (Telemetry)
     const trackInteraction = (type: 'click' | 'hover' | 'edit' | 'ai-trigger', payload?: any) => {
@@ -67,14 +65,12 @@ export const withUniversalProxy = <P extends object>(
       }
     };
 
-    // 4. Logic Injection
     const isHighFrequency = adaptiveTraits.includes('optimization');
 
     // 5. Render
     try {
       const proxiedProps = { ...props } as any;
 
-      // Intercept Events to feed the Intelligence
       if (proxiedProps.onClick) {
         const originalOnClick = proxiedProps.onClick;
         proxiedProps.onClick = (...args: any[]) => {
@@ -102,7 +98,7 @@ export const withUniversalProxy = <P extends object>(
       );
     } catch (e) {
       console.error(`[UniversalProxy] Error in agent node ${componentId}:`, e);
-      return <div className="text-red-500 text-xs">Agent Error</div>;
+      return null;
     }
   };
 

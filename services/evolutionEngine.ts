@@ -1,25 +1,20 @@
-
 import { InteractionEvent, OmniEsgTrait, UniversalKnowledgeNode, UniversalLabel } from '../types';
 
 type Listener = (node: UniversalKnowledgeNode) => void;
 
 /**
  * Universal Intelligence Library (The Brain).
- * Previously 'EvolutionEngine'.
- * 
- * Responsibilities:
- * 1. Store the state of all Universal Agent Components (Nodes).
- * 2. Manage the bidirectional sync between UI (Component) and Logic (Agent).
- * 3. Provide a Pub/Sub mechanism for real-time trait evolution.
+ * Optimized v2.0: Targeted Subscriptions & Memory Management.
+ * Genesis v1.1: Pre-loaded with '428_Main' consciousness.
  */
 class UniversalIntelligenceEngine {
   private static STORAGE_KEY = 'jun_aikey_universal_mind_v1';
   private knowledgeGraph: Map<string, UniversalKnowledgeNode>; 
-  private listeners: Set<Listener>;
+  private subscribers: Map<string, Set<Listener>>;
 
   constructor() {
     this.knowledgeGraph = new Map();
-    this.listeners = new Set();
+    this.subscribers = new Map();
     this.load();
   }
 
@@ -29,15 +24,41 @@ class UniversalIntelligenceEngine {
         const saved = localStorage.getItem(UniversalIntelligenceEngine.STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          // Rehydrate map
           Object.values(parsed).forEach((node: any) => {
              this.knowledgeGraph.set(node.id, node);
           });
+        } else {
+          // 🧬 GENESIS SEED INJECTION (Based on init_db.py)
+          this.injectGenesisSeeds();
         }
       } catch (e) {
         console.error("Universal Intelligence: Failed to load memory", e);
       }
     }
+  }
+
+  /**
+   * Injects the core philosophy and 12 Words of Power into the Neural Net.
+   */
+  private injectGenesisSeeds() {
+      // 1. The Core Node (428_Main)
+      this.registerNode('428_Main', { 
+          id: '428_Main', 
+          text: 'JunAiKey Protocol', 
+          description: 'Simple. Fast. Perfect.' 
+      }, 'Standby');
+
+      const coreNode = this.knowledgeGraph.get('428_Main');
+      if (coreNode) {
+          coreNode.traits = ['evolution', 'optimization', 'seamless'];
+          coreNode.memory.aiInsights.push(
+              "JunAiKey Protocol v1.1 Established.",
+              "萬能同一律：Component equals Agent.",
+              "12 Words: Simple, Fast, Perfection, Order, Evolution, Eternity."
+          );
+          this.knowledgeGraph.set('428_Main', coreNode);
+      }
+      this.save();
   }
 
   private save() {
@@ -47,10 +68,6 @@ class UniversalIntelligenceEngine {
     }
   }
 
-  /**
-   * Registers a Component as an Agent Node in the Intelligence Library.
-   * "I think, therefore I am."
-   */
   public registerNode(id: string, label: UniversalLabel | string, initialValue: any) {
     if (!this.knowledgeGraph.has(id)) {
       const labelObj: UniversalLabel = typeof label === 'string' 
@@ -77,51 +94,60 @@ class UniversalIntelligenceEngine {
   }
 
   /**
-   * Subscribe to changes for specific nodes or global updates.
+   * Optimized Subscribe: Only listen to specific Neuron ID.
    */
-  public subscribe(listener: Listener): () => void {
-    this.listeners.add(listener);
+  public subscribe(id: string, listener: Listener): () => void {
+    if (!this.subscribers.has(id)) {
+        this.subscribers.set(id, new Set());
+    }
+    this.subscribers.get(id)!.add(listener);
+
     return () => {
-      this.listeners.delete(listener);
+      const listeners = this.subscribers.get(id);
+      if (listeners) {
+          listeners.delete(listener);
+          if (listeners.size === 0) {
+              this.subscribers.delete(id);
+          }
+      }
     };
   }
 
-  private notify(node: UniversalKnowledgeNode) {
-    this.listeners.forEach(listener => listener(node));
+  /**
+   * Universal Broadcast (Use sparingly)
+   */
+  public subscribeGlobal(listener: Listener): () => void {
+      const GLOBAL_KEY = '__GLOBAL__';
+      return this.subscribe(GLOBAL_KEY, listener);
   }
 
-  /**
-   * The Sense Input.
-   * Records user interaction, updates "Heatmap", and triggers Evolution.
-   */
+  private notify(node: UniversalKnowledgeNode) {
+    const specificListeners = this.subscribers.get(node.id);
+    if (specificListeners) {
+        specificListeners.forEach(listener => listener(node));
+    }
+
+    const globalListeners = this.subscribers.get('__GLOBAL__');
+    if (globalListeners) {
+        globalListeners.forEach(listener => listener(node));
+    }
+  }
+
   public recordInteraction(event: InteractionEvent) {
     const { componentId, eventType, payload } = event;
     const node = this.knowledgeGraph.get(componentId);
     
     if (node) {
-      // 1. Update Metrics
       node.interactionCount += 1;
       node.lastInteraction = Date.now();
       
-      // 2. Logic: Weighting
-      let weight = 1;
-      switch (eventType) {
-        case 'click': weight = 2; break;
-        case 'edit': weight = 5; break;
-        case 'ai-trigger': weight = 8; break; // High impact
-        case 'hover': weight = 0.1; break;
-      }
-      
-      // 3. Evolve Traits (Self-Adaptation)
-      // This is the "Agent" deciding to change its appearance based on experience.
       const traits = new Set(node.traits);
       
-      if (node.interactionCount > 5) traits.add('optimization'); // Breathing
-      if (node.interactionCount > 20) traits.add('performance'); // Rocket
-      if (eventType === 'ai-trigger') traits.add('learning');    // Pulse
-      if (node.interactionCount > 50) traits.add('evolution');   // Infinity
+      if (node.interactionCount > 5) traits.add('optimization'); 
+      if (node.interactionCount > 20) traits.add('performance'); 
+      if (eventType === 'ai-trigger') traits.add('learning');    
+      if (node.interactionCount > 50) traits.add('evolution');   
 
-      // Logic: If user edits, we remove "gap-filling" (AI estimate) because now it's human verified
       if (eventType === 'edit') {
           traits.delete('gap-filling');
           node.confidence = 'high';
@@ -136,10 +162,6 @@ class UniversalIntelligenceEngine {
     }
   }
 
-  /**
-   * Direct Agent Action.
-   * AI Logic updating the Component State directly.
-   */
   public agentUpdate(id: string, updates: Partial<UniversalKnowledgeNode>) {
       const node = this.knowledgeGraph.get(id);
       if (node) {
@@ -150,9 +172,6 @@ class UniversalIntelligenceEngine {
       }
   }
 
-  /**
-   * Retrieval: Get the "Soul" of the component.
-   */
   public getNode(id: string): UniversalKnowledgeNode | undefined {
     return this.knowledgeGraph.get(id);
   }

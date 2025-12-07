@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, GraduationCap, Search, Settings, Activity, Sun, Bell, Languages,
@@ -19,6 +18,28 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+const LogoIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#fbbf24" /> {/* Gold */}
+        <stop offset="50%" stopColor="#10b981" /> {/* Emerald */}
+        <stop offset="100%" stopColor="#fbbf24" /> {/* Gold */}
+      </linearGradient>
+    </defs>
+    <path 
+      d="M25 30 C25 15 45 15 50 30 C55 45 75 45 75 30 C75 15 55 15 50 30 C45 45 25 45 25 30 Z" 
+      stroke="url(#logoGradient)" 
+      strokeWidth="8" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+    />
+    <circle cx="50" cy="30" r="11" fill="#10b981" stroke="#020617" strokeWidth="2" />
+    <path d="M50 19 Q43 30 50 41 Q57 30 50 19" stroke="white" strokeWidth="1.5" strokeOpacity="0.6" fill="none" />
+    <path d="M39 30 H61" stroke="white" strokeWidth="1.5" strokeOpacity="0.6" />
+  </svg>
+);
+
 export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, language, onToggleLanguage, children }) => {
   const t = TRANSLATIONS[language];
   const { userName, userRole, xp, level, goodwillBalance, latestEvent, totalScore } = useCompany();
@@ -26,15 +47,10 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
 
-  // Calculate XP percentage for current level (Level N starts at (N-1)*1000)
   const currentLevelBaseXp = (level - 1) * 1000;
-  const nextLevelXp = level * 1000;
   const xpProgress = Math.min(100, Math.max(0, ((xp - currentLevelBaseXp) / 1000) * 100));
-
-  // Visual Alarm for Low Score
   const isCritical = totalScore < 60;
 
-  // Keyboard shortcut for Command Palette
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -49,28 +65,30 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   return (
     <div className={`min-h-screen bg-celestial-900 text-gray-200 relative overflow-hidden font-sans selection:bg-celestial-emerald/30 transition-colors duration-1000 ${isCritical ? 'border-4 border-red-500/20' : ''}`}>
       
-      {/* Background Ambience: Aurora Flow */}
+      {/* Background Ambience: Aurora Flow (Optimized with will-change-transform) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Deep Space Base */}
         <div className="absolute inset-0 bg-slate-950" />
         
-        {/* Aurora Stream 1 (Purple/Blue) */}
-        <div className={`absolute top-[-20%] left-[-20%] w-[120%] h-[80%] rounded-[100%] blur-[120px] opacity-30 animate-blob mix-blend-screen transform -rotate-12 ${isCritical ? 'bg-red-900' : 'bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900'}`} />
+        <div 
+            className={`absolute top-[-20%] left-[-20%] w-[120%] h-[80%] rounded-[100%] blur-[120px] opacity-30 animate-blob mix-blend-screen transform -rotate-12 ${isCritical ? 'bg-red-900' : 'bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900'}`} 
+            style={{ willChange: 'transform' }}
+        />
         
-        {/* Aurora Stream 2 (Emerald/Teal) */}
-        <div className={`absolute top-[10%] right-[-20%] w-[120%] h-[70%] rounded-[100%] blur-[100px] opacity-20 animate-blob animation-delay-2000 mix-blend-screen transform rotate-12 ${isCritical ? 'bg-orange-900' : 'bg-gradient-to-l from-emerald-900 via-teal-900 to-cyan-900'}`} />
+        <div 
+            className={`absolute top-[10%] right-[-20%] w-[120%] h-[70%] rounded-[100%] blur-[100px] opacity-20 animate-blob animation-delay-2000 mix-blend-screen transform rotate-12 ${isCritical ? 'bg-orange-900' : 'bg-gradient-to-l from-emerald-900 via-teal-900 to-cyan-900'}`} 
+            style={{ willChange: 'transform' }}
+        />
         
-        {/* Aurora Stream 3 (Gold Accent) */}
-        <div className="absolute bottom-[-10%] left-[10%] w-[100%] h-[50%] rounded-[100%] blur-[120px] opacity-10 animate-blob animation-delay-4000 mix-blend-screen bg-gradient-to-t from-amber-900 via-yellow-900 to-transparent" />
+        <div 
+            className="absolute bottom-[-10%] left-[10%] w-[100%] h-[50%] rounded-[100%] blur-[120px] opacity-10 animate-blob animation-delay-4000 mix-blend-screen bg-gradient-to-t from-amber-900 via-yellow-900 to-transparent" 
+            style={{ willChange: 'transform' }}
+        />
         
-        {/* Noise Overlay for texture */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-150 contrast-200" />
       </div>
 
-      {/* Voice Control Interface */}
       <VoiceControl onNavigate={onNavigate} language={language} />
 
-      {/* Command Palette */}
       <CommandPalette 
         isOpen={isCommandOpen} 
         onClose={() => setIsCommandOpen(false)} 
@@ -79,16 +97,12 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
         toggleLanguage={onToggleLanguage}
       />
 
-      {/* Main Container */}
       <div className="relative z-10 flex h-screen">
         
-        {/* Sidebar */}
         <aside className="w-20 lg:w-64 hidden md:flex flex-col border-r border-white/5 bg-slate-900/50 backdrop-blur-xl shrink-0">
-          <div className="h-20 shrink-0 flex items-center justify-center lg:justify-start lg:px-6 border-b border-white/5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-celestial-emerald to-celestial-purple flex items-center justify-center shadow-lg shadow-celestial-emerald/20">
-               <Sun className="w-5 h-5 text-white" />
-            </div>
-            <span className="ml-3 font-bold text-xl text-white hidden lg:block tracking-tight">ESGss<span className="font-light text-gray-400"> X JunAiKey</span></span>
+          <div className="h-20 shrink-0 flex items-center justify-center lg:justify-start lg:px-6 border-b border-white/5 gap-3">
+            <LogoIcon className="w-10 h-10 shrink-0 filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)] hover:scale-110 transition-transform duration-300" />
+            <span className="font-bold text-xl text-white hidden lg:block tracking-tight">ESGss<span className="font-light text-gray-400"> X JunAiKey</span></span>
           </div>
 
           <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
@@ -124,18 +138,15 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
           </div>
         </aside>
 
-        {/* Content Area */}
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
-          {/* Top Bar */}
           <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-slate-900/30 backdrop-blur-sm shrink-0 relative z-30">
             <div className="flex items-center gap-4 flex-1">
                 <div className="md:hidden flex items-center gap-2">
-                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-celestial-emerald to-celestial-purple flex items-center justify-center">
-                        <Sun className="w-5 h-5 text-white" />
+                     <div className="w-10 h-10 flex items-center justify-center">
+                        <LogoIcon className="w-full h-full" />
                      </div>
                 </div>
                 
-                {/* Live Ticker */}
                 <div className="hidden lg:flex items-center gap-2 text-xs overflow-hidden max-w-lg bg-black/20 rounded-full px-3 py-1 border border-white/5">
                     <Radio className="w-3 h-3 text-red-400 animate-pulse shrink-0" />
                     <span className="text-gray-500 font-bold shrink-0">LIVE FEED:</span>
@@ -145,9 +156,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
                 </div>
             </div>
             
-            {/* Gamification HUD (Global Status Pod) */}
             <div className="hidden md:flex items-center gap-6">
-                {/* Search Trigger */}
                 <button 
                     onClick={() => setIsCommandOpen(true)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 text-sm transition-all group"
@@ -157,7 +166,6 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
                     <kbd className="hidden lg:inline-block ml-2 px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-gray-500">⌘K</kbd>
                 </button>
 
-                {/* Level Pod */}
                 <div className="flex items-center gap-3 bg-slate-900/60 border border-white/10 rounded-full pr-4 pl-1 py-1 group hover:border-white/20 transition-all cursor-pointer" onClick={() => onNavigate(View.GAMIFICATION)} title="Click to view full profile">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-celestial-purple to-blue-600 flex items-center justify-center font-bold text-xs text-white border-2 border-slate-900 shadow-lg">
                         {level}
@@ -178,7 +186,6 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
                     </div>
                 </div>
 
-                {/* Coin Pod */}
                 <div className="flex items-center gap-2 bg-slate-900/60 border border-white/10 rounded-full px-3 py-1.5 hover:bg-celestial-gold/10 hover:border-celestial-gold/30 transition-all cursor-pointer group" onClick={() => onNavigate(View.GOODWILL)}>
                     <Coins className="w-4 h-4 text-celestial-gold group-hover:rotate-12 transition-transform" />
                     <span className="text-sm font-bold text-celestial-gold font-mono">{goodwillBalance.toLocaleString()}</span>
@@ -205,7 +212,6 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
                         )}
                     </button>
                     
-                    {/* Notification Dropdown */}
                     {isNotificationsOpen && (
                         <div className="absolute right-0 mt-4 w-80 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-fade-in origin-top-right z-50">
                             <div className="p-3 border-b border-white/10 flex justify-between items-center bg-white/5">
@@ -248,7 +254,6 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
             </div>
           </header>
 
-          {/* Main Scrollable Area */}
           <main className="flex-1 overflow-y-auto p-4 md:p-8 relative custom-scrollbar">
             <div className="max-w-7xl mx-auto pb-24">
                 {children}
@@ -256,7 +261,6 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
           </main>
         </div>
 
-        {/* Mobile Nav (Bottom) */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center px-2 z-40">
             <button onClick={() => onNavigate(View.MY_ESG)} className={`p-2 rounded-lg ${currentView === View.MY_ESG ? 'text-celestial-emerald' : 'text-gray-500'}`}><Home className="w-6 h-6"/></button>
             <button onClick={() => onNavigate(View.DASHBOARD)} className={`p-2 rounded-lg ${currentView === View.DASHBOARD ? 'text-celestial-emerald' : 'text-gray-500'}`}><LayoutDashboard className="w-6 h-6"/></button>
@@ -269,7 +273,6 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   );
 };
 
-// Nav Helper
 const NavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
   <button
     onClick={onClick}

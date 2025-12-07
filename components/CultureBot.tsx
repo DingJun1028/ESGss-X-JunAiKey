@@ -1,14 +1,59 @@
 
 import React, { useState } from 'react';
 import { Language } from '../types';
-import { Bot, MessageSquare, CheckSquare, Heart, Coffee, Send, ChevronRight } from 'lucide-react';
+import { Bot, MessageSquare, CheckSquare, Heart, Coffee, Send, ChevronRight, Smile, Zap } from 'lucide-react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useCompany } from './providers/CompanyProvider';
 import { useToast } from '../contexts/ToastContext';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 
 interface CultureBotProps {
   language: Language;
 }
+
+// ----------------------------------------------------------------------
+// Agent: Culture Spirit (The Empath)
+// ----------------------------------------------------------------------
+interface CultureSpiritProps extends InjectedProxyProps {
+    xp: number;
+}
+
+const CultureSpiritBase: React.FC<CultureSpiritProps> = ({ xp, adaptiveTraits, isAgentActive, trackInteraction }) => {
+    // Agent Visuals
+    const isHappy = adaptiveTraits?.includes('bridging') || xp > 2000;
+    const isThinking = isAgentActive;
+
+    return (
+        <div 
+            onClick={() => trackInteraction?.('click')}
+            className={`w-24 h-24 rounded-full flex items-center justify-center relative cursor-pointer group transition-all duration-500
+                ${isHappy ? 'bg-gradient-to-tr from-celestial-purple to-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)]' : 'bg-gradient-to-tr from-gray-700 to-slate-600'}
+            `}
+        >
+            {isThinking && (
+                <div className="absolute inset-0 rounded-full border-4 border-white/20 border-t-white/80 animate-spin" />
+            )}
+            
+            {/* Spirit Aura */}
+            <div className={`absolute inset-0 rounded-full blur-xl opacity-50 ${isHappy ? 'bg-pink-500 animate-pulse' : 'bg-gray-500'}`} />
+
+            <div className="relative z-10 text-white">
+                {isHappy ? <Smile className="w-10 h-10 animate-bounce" /> : <Bot className="w-10 h-10" />}
+            </div>
+
+            {/* Status Bubble */}
+            <div className="absolute -bottom-2 px-2 py-0.5 bg-black/80 rounded-full border border-white/20 text-[10px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                {isHappy ? "Spirit: Joyful" : "Spirit: Neutral"}
+            </div>
+        </div>
+    );
+};
+
+const CultureSpiritAgent = withUniversalProxy(CultureSpiritBase);
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
 
 export const CultureBot: React.FC<CultureBotProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
@@ -51,10 +96,16 @@ export const CultureBot: React.FC<CultureBotProps> = ({ language }) => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-        <div className="flex items-center gap-4">
-            <div className="p-3 bg-celestial-purple/10 rounded-xl border border-celestial-purple/20">
-                 <Bot className="w-8 h-8 text-celestial-purple" />
+        <div className="flex items-center gap-6">
+            {/* The Agent Avatar */}
+            <div className="shrink-0">
+                <CultureSpiritAgent 
+                    id="CultureSpirit" 
+                    label="Culture Spirit" 
+                    xp={xp} 
+                />
             </div>
+            
             <div>
                 <h2 className="text-3xl font-bold text-white">{isZh ? '文化推廣機器人' : 'Culture Bot'}</h2>
                 <p className="text-gray-400">{isZh ? '每日微學習與 ESG 參與' : 'Daily Micro-learning & ESG Engagement'}</p>

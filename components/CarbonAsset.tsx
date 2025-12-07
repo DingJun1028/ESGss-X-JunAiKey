@@ -1,13 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { Language } from '../types';
-import { Leaf, TrendingUp, PieChart, MapPin, Loader2, Zap, Calculator, Fuel, Save, DollarSign } from 'lucide-react';
+import { Leaf, TrendingUp, PieChart, MapPin, Loader2, Zap, Calculator, Fuel, Save, DollarSign, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '../contexts/ToastContext';
 import { performMapQuery } from '../services/ai-service';
 import { useCompany } from './providers/CompanyProvider';
 import { QuantumSlider } from './minimal/QuantumSlider';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
+import { universalIntelligence } from '../services/evolutionEngine';
 
 interface CarbonAssetProps {
   language: Language;
@@ -22,6 +24,104 @@ const EMISSION_DATA = [
   { name: 'Jun', scope1: 100, scope2: 65, scope3: 260 },
 ];
 
+// ----------------------------------------------------------------------
+// Agent: Pricing Simulator (The Economist)
+// ----------------------------------------------------------------------
+interface PricingSimulatorProps extends InjectedProxyProps {
+    shadowPrice: number;
+    setShadowPrice: (val: number) => void;
+    carbonData: any;
+    isZh: boolean;
+}
+
+const PricingSimulatorBase: React.FC<PricingSimulatorProps> = ({ 
+    shadowPrice, setShadowPrice, carbonData, isZh, 
+    adaptiveTraits, trackInteraction, isAgentActive 
+}) => {
+    
+    // Agent Logic: Calculate Pressure based on price
+    const totalEmissions = carbonData.scope1 + carbonData.scope2;
+    const cost = totalEmissions * shadowPrice;
+    const isHighPressure = cost > 100000; // Simulated threshold
+    
+    // Evolution Visuals
+    const isEvolved = adaptiveTraits?.includes('evolution');
+    const isLearning = adaptiveTraits?.includes('learning') || isAgentActive;
+
+    // Report state to Brain
+    useEffect(() => {
+        if (isHighPressure) {
+            universalIntelligence.agentUpdate('Budget', { confidence: 'low' }); // Stress the budget
+        }
+    }, [isHighPressure]);
+
+    const handlePriceChange = (val: number) => {
+        setShadowPrice(val);
+        trackInteraction?.('edit', val);
+    };
+
+    return (
+        <div className={`glass-panel p-8 rounded-2xl border transition-all duration-500 bg-gradient-to-br from-celestial-gold/5 to-transparent
+            ${isHighPressure ? 'border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'border-celestial-gold/20'}
+            ${isEvolved ? 'scale-[1.01]' : ''}
+        `}>
+            <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <DollarSign className={`w-6 h-6 ${isHighPressure ? 'text-red-400' : 'text-celestial-gold'}`} /> 
+                    {isZh ? '內部碳定價模擬器' : 'Internal Carbon Pricing Simulator'}
+                </h3>
+                {isLearning && (
+                    <div className="flex items-center gap-1 text-[10px] text-celestial-purple bg-celestial-purple/10 px-2 py-1 rounded-full border border-celestial-purple/20 animate-pulse">
+                        <Zap className="w-3 h-3" /> Agent Active
+                    </div>
+                )}
+            </div>
+            
+            <p className="text-sm text-gray-400 mb-8">{isZh ? '設定影子價格以評估其對各部門損益的潛在影響。' : 'Set a shadow price to evaluate potential impact on departmental P&L.'}</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-8">
+                    <QuantumSlider 
+                        label={isZh ? '影子價格 (Shadow Price)' : 'Shadow Price'}
+                        value={shadowPrice} min={0} max={300} unit="USD/t" color={isHighPressure ? 'purple' : 'gold'}
+                        onChange={handlePriceChange}
+                    />
+                    <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">{isZh ? '總排放量 (Scope 1+2)' : 'Total Emissions (S1+S2)'}</div>
+                        <div className="text-2xl font-bold text-white">{totalEmissions.toFixed(1)} tCO2e</div>
+                    </div>
+                </div>
+                <div className={`flex flex-col justify-center items-center text-center p-6 rounded-2xl border transition-colors duration-500
+                    ${isHighPressure ? 'bg-red-500/10 border-red-500/30' : 'bg-celestial-gold/10 border-celestial-gold/30'}
+                `}>
+                    <div className={`text-sm font-bold uppercase mb-2 ${isHighPressure ? 'text-red-400' : 'text-celestial-gold'}`}>
+                        {isZh ? '預估內部碳費' : 'Projected Internal Carbon Fee'}
+                    </div>
+                    <div className="text-5xl font-mono font-bold text-white tracking-tight">
+                        ${cost.toLocaleString()}
+                    </div>
+                    {isHighPressure && (
+                        <div className="mt-4 flex items-center gap-2 text-xs text-red-300 bg-red-500/20 px-3 py-1.5 rounded-lg animate-bounce">
+                            <AlertTriangle className="w-3 h-3" />
+                            {isZh ? '警告：超出部門預算上限' : 'Warning: Exceeds Dept Cap'}
+                        </div>
+                    )}
+                    <p className="text-xs text-gray-400 mt-4">
+                        {isZh ? '此費用將從營運預算中扣除，轉入去碳化基金。' : 'This fee would be deducted from OpEx and moved to Decarbonization Fund.'}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const PricingSimulatorAgent = withUniversalProxy(PricingSimulatorBase);
+
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
+
 export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
   const { addToast } = useToast();
@@ -34,7 +134,6 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
 
   // Internal Carbon Pricing State
   const [shadowPrice, setShadowPrice] = useState(50); // USD per ton
-  const [projectedCost, setProjectedCost] = useState(0);
 
   // Calculator State
   const [fuelInput, setFuelInput] = useState(carbonData.fuelConsumption);
@@ -143,33 +242,14 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
         )}
 
         {activeTab === 'pricing' && (
-            <div className="glass-panel p-8 rounded-2xl border border-celestial-gold/20 bg-gradient-to-br from-celestial-gold/5 to-transparent">
-                <h3 className="text-xl font-bold text-white mb-2">{isZh ? '內部碳定價模擬器' : 'Internal Carbon Pricing Simulator'}</h3>
-                <p className="text-sm text-gray-400 mb-8">{isZh ? '設定影子價格以評估其對各部門損益的潛在影響。' : 'Set a shadow price to evaluate potential impact on departmental P&L.'}</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="space-y-8">
-                        <QuantumSlider 
-                            label={isZh ? '影子價格 (Shadow Price)' : 'Shadow Price'}
-                            value={shadowPrice} min={0} max={300} unit="USD/t" color="gold"
-                            onChange={setShadowPrice}
-                        />
-                        <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                            <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">{isZh ? '總排放量 (Scope 1+2)' : 'Total Emissions (S1+S2)'}</div>
-                            <div className="text-2xl font-bold text-white">{(carbonData.scope1 + carbonData.scope2).toFixed(1)} tCO2e</div>
-                        </div>
-                    </div>
-                    <div className="flex flex-col justify-center items-center text-center p-6 bg-celestial-gold/10 rounded-2xl border border-celestial-gold/30">
-                        <div className="text-sm text-celestial-gold font-bold uppercase mb-2">{isZh ? '預估內部碳費' : 'Projected Internal Carbon Fee'}</div>
-                        <div className="text-5xl font-mono font-bold text-white tracking-tight">
-                            ${((carbonData.scope1 + carbonData.scope2) * shadowPrice).toLocaleString()}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-4">
-                            {isZh ? '此費用將從營運預算中扣除，轉入去碳化基金。' : 'This fee would be deducted from OpEx and moved to Decarbonization Fund.'}
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <PricingSimulatorAgent 
+                id="PriceSimulator"
+                label="PriceSimulator"
+                shadowPrice={shadowPrice}
+                setShadowPrice={setShadowPrice}
+                carbonData={carbonData}
+                isZh={isZh}
+            />
         )}
     </div>
   );

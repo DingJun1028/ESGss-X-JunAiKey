@@ -6,10 +6,68 @@ import { TRANSLATIONS } from '../constants';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useToast } from '../contexts/ToastContext';
 import { performWebSearch } from '../services/ai-service';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 
 interface ResearchHubProps {
   language: Language;
 }
+
+// ----------------------------------------------------------------------
+// Agent: Knowledge Concept Node
+// ----------------------------------------------------------------------
+interface ConceptNodeProps extends InjectedProxyProps {
+    id: string;
+    type: 'center' | 'satellite';
+    text: string;
+    isActive: boolean;
+    onClick: () => void;
+    position: 'center' | 'top-left' | 'bottom-right' | 'mid-right';
+}
+
+const ConceptNodeBase: React.FC<ConceptNodeProps> = ({ 
+    type, text, isActive, onClick, position,
+    adaptiveTraits, trackInteraction, isAgentActive
+}) => {
+    
+    // Agent Evolution: More interaction = Larger Size & Gold Glow
+    const isEvolved = adaptiveTraits?.includes('evolution');
+    const isLearning = adaptiveTraits?.includes('learning') || isAgentActive;
+
+    const baseStyle = "absolute rounded-full flex items-center justify-center cursor-pointer transition-all duration-500 z-20";
+    
+    let posStyle = {};
+    if (position === 'center') posStyle = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+    if (position === 'top-left') posStyle = { top: '20%', left: '25%' };
+    if (position === 'bottom-right') posStyle = { bottom: '20%', right: '25%' };
+    if (position === 'mid-right') posStyle = { top: '50%', right: '10%' };
+
+    const dynamicClass = type === 'center'
+        ? `${isActive ? 'w-24 h-24 bg-celestial-purple shadow-[0_0_30px_rgba(139,92,246,0.6)] border-2 border-white' : 'w-20 h-20 bg-celestial-purple/20 border border-celestial-purple animate-pulse'}`
+        : `${isActive ? 'bg-celestial-gold text-black font-bold scale-125 shadow-[0_0_15px_rgba(251,191,36,0.6)] border-transparent' : 'bg-white/5 border border-white/20 text-gray-300 hover:border-white/50'}`;
+
+    const sizeClass = type === 'satellite' ? (isEvolved ? 'w-14 h-14 text-xs' : 'w-10 h-10 text-[10px]') : '';
+
+    return (
+        <div 
+            onClick={() => { onClick(); trackInteraction?.('click'); }}
+            className={`${baseStyle} ${dynamicClass} ${sizeClass}`}
+            style={posStyle}
+        >
+            {type === 'center' ? <Database className={`w-8 h-8 ${isActive ? 'text-white' : 'text-celestial-purple'}`} /> : text}
+            
+            {/* Thought Indicator */}
+            {isLearning && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-celestial-emerald rounded-full animate-ping" />
+            )}
+        </div>
+    );
+};
+
+const ConceptAgent = withUniversalProxy(ConceptNodeBase);
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
 
 export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
   const t = TRANSLATIONS[language].research;
@@ -154,7 +212,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
                 </div>
             )}
 
-            {/* Feature: Graph RAG / Service Flow Visual */}
+            {/* Feature: Graph RAG / Service Flow Visual (Now Agents) */}
             <div className="glass-panel p-6 rounded-2xl border-white/10 overflow-hidden relative">
                 <div className="flex justify-between items-center mb-4 relative z-10">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -172,58 +230,31 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
                         </div>
                     ) : (
                         <div className="relative w-full max-w-lg h-full flex items-center justify-center">
-                            {/* Connecting Lines (Simulated) */}
+                            {/* Neural Connections */}
                             <div className={`absolute w-[200px] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-0 transition-opacity duration-300 ${selectedNode && selectedNode !== 'center' ? 'opacity-20' : 'opacity-100'}`}></div>
                             <div className={`absolute w-[200px] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-45 transition-opacity duration-300 ${selectedNode && selectedNode !== 'center' ? 'opacity-20' : 'opacity-100'}`}></div>
                             <div className={`absolute w-[200px] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent -rotate-45 transition-opacity duration-300 ${selectedNode && selectedNode !== 'center' ? 'opacity-20' : 'opacity-100'}`}></div>
 
-                            {/* Center Node */}
-                            <div 
-                                    onClick={() => handleNodeClick('center')}
-                                    className={`absolute w-16 h-16 rounded-full flex items-center justify-center z-20 cursor-pointer transition-all duration-300 ${
-                                        selectedNode === 'center' 
-                                        ? 'bg-celestial-purple shadow-[0_0_20px_rgba(139,92,246,0.6)] scale-110 border-white' 
-                                        : 'bg-celestial-purple/20 border-celestial-purple border animate-pulse'
-                                    }`}
-                            >
-                                <Database className={`w-6 h-6 transition-colors ${selectedNode === 'center' ? 'text-white' : 'text-white'}`} />
-                            </div>
+                            {/* Knowledge Agents */}
+                            <ConceptAgent 
+                                id="MainDB" label="Knowledge Core" text="Core" type="center" 
+                                position="center" isActive={selectedNode === 'MainDB'} onClick={() => handleNodeClick('MainDB')} 
+                            />
                             
-                            {/* Satellite Nodes */}
-                            <div 
-                                    onClick={() => handleNodeClick('gri')}
-                                    className={`absolute top-8 left-1/4 w-10 h-10 rounded-full flex items-center justify-center text-[10px] cursor-pointer transition-all duration-300 animate-float ${
-                                        selectedNode === 'gri'
-                                        ? 'bg-celestial-gold text-black font-bold scale-125 shadow-[0_0_15px_rgba(251,191,36,0.6)] border-transparent'
-                                        : 'bg-white/5 border border-white/20 text-gray-300'
-                                    }`}
-                            >
-                                GRI
-                            </div>
+                            <ConceptAgent 
+                                id="GRI_Node" label="GRI Standard" text="GRI" type="satellite" 
+                                position="top-left" isActive={selectedNode === 'GRI_Node'} onClick={() => handleNodeClick('GRI_Node')} 
+                            />
 
-                            <div 
-                                    onClick={() => handleNodeClick('sasb')}
-                                    className={`absolute bottom-8 right-1/4 w-10 h-10 rounded-full flex items-center justify-center text-[10px] cursor-pointer transition-all duration-300 animate-float ${
-                                        selectedNode === 'sasb'
-                                        ? 'bg-celestial-gold text-black font-bold scale-125 shadow-[0_0_15px_rgba(251,191,36,0.6)] border-transparent'
-                                        : 'bg-white/5 border border-white/20 text-gray-300'
-                                    }`}
-                                    style={{animationDelay: '1s'}}
-                            >
-                                SASB
-                            </div>
+                            <ConceptAgent 
+                                id="SASB_Node" label="SASB" text="SASB" type="satellite" 
+                                position="bottom-right" isActive={selectedNode === 'SASB_Node'} onClick={() => handleNodeClick('SASB_Node')} 
+                            />
 
-                            <div 
-                                    onClick={() => handleNodeClick('tcfd')}
-                                    className={`absolute top-1/2 right-10 w-12 h-12 rounded-full flex items-center justify-center text-[10px] cursor-pointer transition-all duration-300 animate-float ${
-                                        selectedNode === 'tcfd'
-                                        ? 'bg-celestial-emerald text-black font-bold scale-125 shadow-[0_0_15px_rgba(16,185,129,0.6)] border-transparent'
-                                        : 'bg-celestial-emerald/10 border border-celestial-emerald/30 text-emerald-400'
-                                    }`}
-                                    style={{animationDelay: '2s'}}
-                            >
-                                TCFD
-                            </div>
+                            <ConceptAgent 
+                                id="TCFD_Node" label="TCFD" text="TCFD" type="satellite" 
+                                position="mid-right" isActive={selectedNode === 'TCFD_Node'} onClick={() => handleNodeClick('TCFD_Node')} 
+                            />
                         </div>
                     )}
                 </div>

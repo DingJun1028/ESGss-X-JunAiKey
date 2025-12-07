@@ -1,12 +1,12 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity, BrainCircuit, Search, CheckCircle, Image as ImageIcon, Trash2, Download, Save, FileText, History, Eraser, UserCog } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Loader2, Paperclip, Workflow, Database, Infinity, BrainCircuit, Search, CheckCircle, Image as ImageIcon, Trash2, Download, Save, FileText, History, Eraser, UserCog, Activity } from 'lucide-react';
 import { ChatMessage, Language } from '../types';
 import { streamChat, fileToGenerativePart } from '../services/ai-service';
 import { useToast } from '../contexts/ToastContext';
 import { useCompany } from './providers/CompanyProvider';
 import { marked } from 'marked';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { universalIntelligence } from '../services/evolutionEngine';
 
 interface AiAssistantProps {
   language: Language;
@@ -25,6 +25,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [currentStep, setCurrentStep] = useState<AgentStep | null>(null);
+  const [neuralPulse, setNeuralPulse] = useState(false); // New State for Visual Feedback
   
   // Persona State
   const [persona, setPersona] = useState<AiPersona>('orchestrator');
@@ -47,7 +48,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
   
   const STORAGE_KEY = 'esgss_universal_memory_v1';
 
-  // --- Universal Memory: Load ---
+  // --- Universal Memory: Load & Subscribe ---
   useEffect(() => {
     const savedMemory = localStorage.getItem(STORAGE_KEY);
     if (savedMemory) {
@@ -75,6 +76,14 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
             timestamp: new Date()
         }]);
     }
+
+    // Subscribe to Universal Brain for Neural Pulse
+    const unsubscribe = universalIntelligence.subscribeGlobal(() => {
+        setNeuralPulse(true);
+        setTimeout(() => setNeuralPulse(false), 200);
+    });
+    return () => unsubscribe();
+
   }, []);
 
   // --- Universal Memory: Save ---
@@ -317,7 +326,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
           <div className="p-3 bg-white/5 border-b border-white/10 flex flex-col gap-3 backdrop-blur-xl shrink-0">
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-celestial-emerald animate-ping" />
+                <div className={`w-2 h-2 rounded-full ${neuralPulse ? 'bg-white scale-150' : 'bg-celestial-emerald'} transition-all duration-100 animate-pulse`} />
                 <h3 className="font-semibold text-white tracking-wide flex items-center gap-2 text-sm">
                     <Bot className="w-4 h-4 text-celestial-purple"/>
                     JunAiKey <span className="text-[10px] opacity-50 font-normal hidden sm:inline">| Universal Memory</span>
@@ -359,6 +368,13 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
                     </button>
                 ))}
             </div>
+          </div>
+
+          {/* Neural Activity Pulse Bar */}
+          <div className="h-1 w-full bg-slate-800 flex overflow-hidden">
+              {neuralPulse && (
+                  <div className="w-full h-full bg-gradient-to-r from-transparent via-celestial-emerald to-transparent animate-[shimmer_0.5s_infinite]" />
+              )}
           </div>
 
           <div className="flex-1 overflow-hidden p-0 relative bg-slate-900/50">
@@ -476,6 +492,11 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language }) => {
                      <span className="flex items-center gap-1"><ImageIcon className="w-3 h-3"/> Vision</span>
                      <span className="flex items-center gap-1 text-emerald-500/70"><History className="w-3 h-3"/> Universal Memory</span>
                  </div>
+                 {neuralPulse && (
+                     <div className="flex items-center gap-1 text-[9px] text-celestial-gold animate-pulse">
+                         <Activity className="w-3 h-3" /> Neural Sync Active
+                     </div>
+                 )}
             </div>
           </div>
         </div>

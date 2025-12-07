@@ -1,16 +1,99 @@
 
 import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
-import { Calculator, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
+import { Calculator, TrendingUp, DollarSign, AlertCircle, LineChart, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { QuantumSlider } from './minimal/QuantumSlider';
 import { OmniEsgCell } from './OmniEsgCell';
 import { predictFutureTrends } from '../services/ai-service';
 import { useToast } from '../contexts/ToastContext';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 
 interface FinanceSimProps {
   language: Language;
 }
+
+// ----------------------------------------------------------------------
+// Agent: Market Oracle (The Forecaster)
+// ----------------------------------------------------------------------
+interface MarketOracleProps extends InjectedProxyProps {
+    data: any[];
+    isZh: boolean;
+}
+
+const MarketOracleBase: React.FC<MarketOracleProps> = ({ data, isZh, adaptiveTraits, isAgentActive, trackInteraction }) => {
+    // Agent Visuals
+    const isCalculating = adaptiveTraits?.includes('optimization');
+    const isVolatile = adaptiveTraits?.includes('evolution'); // E.g. High Carbon Price scenario
+
+    return (
+        <div 
+            className={`lg:col-span-2 glass-panel p-6 rounded-2xl border transition-all duration-500 min-h-[400px] flex flex-col relative overflow-hidden group
+                ${isVolatile ? 'border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.1)]' : 'border-white/5'}
+            `}
+            onClick={() => trackInteraction?.('click')}
+        >
+            {/* Scan Line Effect when Calculating */}
+            {isCalculating && (
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-celestial-emerald/5 to-transparent animate-[scan_2s_linear_infinite] pointer-events-none" />
+            )}
+
+            <div className="flex justify-between items-center mb-6 relative z-10">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <TrendingUp className={`w-5 h-5 ${isVolatile ? 'text-amber-400' : 'text-celestial-emerald'}`} />
+                    {isZh ? '情境分析：一切照舊 vs 綠色轉型' : 'Scenario: BAU vs Green Transition'}
+                </h3>
+                {isAgentActive && (
+                    <div className="flex items-center gap-1 text-[10px] text-celestial-emerald border border-celestial-emerald/30 px-2 py-1 rounded bg-celestial-emerald/10">
+                        <Activity className="w-3 h-3" /> Oracle Live
+                    </div>
+                )}
+            </div>
+            
+            <div className="flex-1 w-full min-h-[300px]" style={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data}>
+                        <defs>
+                            <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorBau" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#64748b" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#64748b" stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="year" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip 
+                            contentStyle={{ backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.1)' }}
+                            itemStyle={{ color: '#e2e8f0' }}
+                        />
+                        <Legend verticalAlign="top" height={36} />
+                        <Area name={isZh ? "綠色轉型" : "Green Transition"} type="monotone" dataKey="Green" stroke="#10b981" fill="url(#colorGreen)" strokeWidth={2} />
+                        <Area name={isZh ? "一切照舊 (BAU)" : "Business As Usual"} type="monotone" dataKey="BAU" stroke="#64748b" fill="url(#colorBau)" strokeDasharray="5 5" />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                <div className="text-xs text-amber-200">
+                    {isZh 
+                        ? "注意：當碳價超過 €120/t 時，BAU 情境將出現負現金流。建議加速資本支出。" 
+                        : "Insight: BAU scenario turns cash-negative when Carbon Price exceeds €120/t. Acceleration advised."}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MarketOracleAgent = withUniversalProxy(MarketOracleBase);
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
 
 export const FinanceSim: React.FC<FinanceSimProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
@@ -122,51 +205,13 @@ export const FinanceSim: React.FC<FinanceSimProps> = ({ language }) => {
             </div>
         </div>
 
-        {/* Chart */}
-        <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 min-h-[400px] flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-celestial-emerald" />
-                    {isZh ? '情境分析：一切照舊 vs 綠色轉型' : 'Scenario: BAU vs Green Transition'}
-                </h3>
-            </div>
-            
-            <div className="flex-1 w-full min-h-[300px]" style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data}>
-                        <defs>
-                            <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                            </linearGradient>
-                            <linearGradient id="colorBau" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#64748b" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#64748b" stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="year" stroke="#94a3b8" />
-                        <YAxis stroke="#94a3b8" />
-                        <Tooltip 
-                            contentStyle={{ backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.1)' }}
-                            itemStyle={{ color: '#e2e8f0' }}
-                        />
-                        <Legend verticalAlign="top" height={36} />
-                        <Area name={isZh ? "綠色轉型" : "Green Transition"} type="monotone" dataKey="Green" stroke="#10b981" fill="url(#colorGreen)" strokeWidth={2} />
-                        <Area name={isZh ? "一切照舊 (BAU)" : "Business As Usual"} type="monotone" dataKey="BAU" stroke="#64748b" fill="url(#colorBau)" strokeDasharray="5 5" />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </div>
-            
-            <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
-                <div className="text-xs text-amber-200">
-                    {isZh 
-                        ? "注意：當碳價超過 €120/t 時，BAU 情境將出現負現金流。建議加速資本支出。" 
-                        : "Insight: BAU scenario turns cash-negative when Carbon Price exceeds €120/t. Acceleration advised."}
-                </div>
-            </div>
-        </div>
+        {/* Chart (Now Agent) */}
+        <MarketOracleAgent 
+            id="MarketOracle"
+            label="ROI Forecast"
+            data={data}
+            isZh={isZh}
+        />
       </div>
     </div>
   );

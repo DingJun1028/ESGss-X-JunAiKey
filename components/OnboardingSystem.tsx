@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Database, Zap, Cpu, CheckCircle, Globe, Lock } from 'lucide-react';
 import { useCompany } from './providers/CompanyProvider';
@@ -51,8 +50,8 @@ export const OnboardingSystem: React.FC = () => {
 
   const steps = [
       { text: "INITIALIZING KERNEL...", sub: "Loading Omni-Components", icon: Cpu },
-      { text: "CONNECTING TO NEURAL GRID...", sub: "Verifying JunAiKey Protocols", icon: Globe },
-      { text: "DECRYPTING SECURE VAULT...", sub: "Biometric Handshake", icon: Lock },
+      { text: "ESTABLISHING PROTOCOL v1.1...", sub: "Syncing with StarGate (NCB)", icon: Globe },
+      { text: "INJECTING GENESIS SEEDS...", sub: "Simple. Fast. Perfect.", icon: Zap },
       { text: `WELCOME, ${userName?.toUpperCase() || 'COMMANDER'}`, sub: "System Ready", icon: CheckCircle },
   ];
 
@@ -78,7 +77,7 @@ export const OnboardingSystem: React.FC = () => {
 
             <div className="w-full space-y-2 mb-8">
                 <div className="flex justify-between text-xs font-mono text-celestial-emerald">
-                    <span>SYSTEM_BOOT_V12.0.4</span>
+                    <span>JUN_AIKEY_GENESIS_v1.1</span>
                     <span>{Math.round(progress)}%</span>
                 </div>
                 <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
@@ -102,7 +101,7 @@ export const OnboardingSystem: React.FC = () => {
             <div className="mt-12 w-full h-32 overflow-hidden text-[10px] font-mono text-gray-600 border-t border-white/5 pt-4 text-left opacity-50">
                 <p>> Mount: OmniEsgCell... OK</p>
                 {progress > 20 && <p>> Link: Gemini 3 Pro... CONNECTED (23ms)</p>}
-                {progress > 40 && <p>> Verify: Blockchain Hash... MATCH</p>}
+                {progress > 40 && <p>> Verify: Genesis Seeds... 12 WORDS INJECTED</p>}
                 {progress > 60 && <p>> Optimize: React Fiber Tree... DONE</p>}
                 {progress > 80 && <p>> Inject: Context Providers... SUCCESS</p>}
                 {progress > 95 && <p>> Access Granted.</p>}

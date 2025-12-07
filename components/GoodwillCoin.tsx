@@ -1,15 +1,87 @@
 
 import React, { useState } from 'react';
 import { Language } from '../types';
-import { Coins, ArrowUpRight, ArrowDownLeft, ShoppingBag, Package, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { Coins, ArrowUpRight, ArrowDownLeft, ShoppingBag, Package, Sparkles, AlertCircle, Loader2, Wallet, CreditCard } from 'lucide-react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useCompany } from './providers/CompanyProvider';
 import { useToast } from '../contexts/ToastContext';
 import { ESG_CARDS } from '../constants';
+import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 
 interface GoodwillCoinProps {
   language: Language;
 }
+
+// ----------------------------------------------------------------------
+// Agent: Vault (The Treasury)
+// ----------------------------------------------------------------------
+interface VaultProps extends InjectedProxyProps {
+    goodwillBalance: number;
+    isZh: boolean;
+    handleTransaction: (type: 'send' | 'receive') => void;
+    isTransacting: boolean;
+    openingPack: boolean;
+}
+
+const VaultBase: React.FC<VaultProps> = ({ 
+    goodwillBalance, isZh, handleTransaction, isTransacting, openingPack,
+    adaptiveTraits, trackInteraction, isAgentActive
+}) => {
+    // Agent Visuals
+    // 'performance' trait usually means gaining wealth
+    const isRich = adaptiveTraits?.includes('performance') || goodwillBalance > 5000;
+    const isActive = isAgentActive || isTransacting;
+
+    return (
+        <div 
+            onClick={() => trackInteraction?.('click')}
+            className={`md:col-span-1 glass-panel p-8 rounded-3xl relative overflow-hidden group flex flex-col justify-between h-[300px] border transition-all duration-500
+                ${isRich ? 'bg-gradient-to-br from-celestial-gold/20 to-transparent border-celestial-gold/50 shadow-[0_0_30px_rgba(251,191,36,0.2)]' : 'bg-gradient-to-br from-celestial-gold/10 to-transparent border-celestial-gold/30'}
+            `}
+        >
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-celestial-gold/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none transition-transform duration-1000 ${isActive ? 'scale-150 opacity-100' : 'scale-100 opacity-50'}`} />
+            
+            {/* Holographic Texture */}
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay" />
+
+            <div>
+                <div className="text-sm text-celestial-gold font-medium mb-1 tracking-wider uppercase flex items-center gap-2">
+                    <Wallet className="w-4 h-4" />
+                    {isZh ? '總資產' : 'Total Assets'}
+                </div>
+                <div className={`text-5xl font-bold text-white mb-2 tracking-tight font-mono transition-all duration-500 ${isTransacting ? 'animate-pulse' : ''}`}>
+                    {goodwillBalance.toLocaleString()} <span className="text-lg text-gray-400 font-normal font-sans">GWC</span>
+                </div>
+                <div className="text-xs text-gray-400">≈ ${(goodwillBalance * 0.1).toFixed(2)} USD</div>
+            </div>
+            
+            <div className="flex gap-3 relative z-10">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); handleTransaction('send'); trackInteraction?.('edit'); }}
+                    disabled={isTransacting || openingPack}
+                    className="flex-1 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                    {isTransacting ? <Loader2 className="w-4 h-4 animate-spin"/> : <ArrowUpRight className="w-4 h-4" />} 
+                    {isZh ? '轉帳' : 'Send'}
+                </button>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); handleTransaction('receive'); trackInteraction?.('edit'); }}
+                    disabled={isTransacting || openingPack}
+                    className="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-colors flex items-center justify-center gap-2 border border-white/10 disabled:opacity-50"
+                >
+                    {isTransacting ? <Loader2 className="w-4 h-4 animate-spin"/> : <ArrowDownLeft className="w-4 h-4" />} 
+                    {isZh ? '接收' : 'Request'}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const VaultAgent = withUniversalProxy(VaultBase);
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
 
 export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
@@ -82,37 +154,16 @@ export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Wallet Card */}
-            <div className="md:col-span-1 glass-panel p-8 rounded-3xl bg-gradient-to-br from-celestial-gold/10 to-transparent border border-celestial-gold/30 relative overflow-hidden group flex flex-col justify-between h-[300px]">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-celestial-gold/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                
-                <div>
-                    <div className="text-sm text-celestial-gold font-medium mb-1 tracking-wider uppercase">{isZh ? '總資產' : 'Total Assets'}</div>
-                    <div className="text-5xl font-bold text-white mb-2 tracking-tight font-mono transition-all duration-500">
-                        {goodwillBalance} <span className="text-lg text-gray-400 font-normal font-sans">GWC</span>
-                    </div>
-                    <div className="text-xs text-gray-400">≈ ${(goodwillBalance * 0.1).toFixed(2)} USD</div>
-                </div>
-                
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => handleTransaction('send')}
-                        disabled={isTransacting || openingPack}
-                        className="flex-1 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {isTransacting ? <Loader2 className="w-4 h-4 animate-spin"/> : <ArrowUpRight className="w-4 h-4" />} 
-                        {isZh ? '轉帳' : 'Send'}
-                    </button>
-                    <button 
-                        onClick={() => handleTransaction('receive')}
-                        disabled={isTransacting || openingPack}
-                        className="flex-1 py-3 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-colors flex items-center justify-center gap-2 border border-white/10 disabled:opacity-50"
-                    >
-                        {isTransacting ? <Loader2 className="w-4 h-4 animate-spin"/> : <ArrowDownLeft className="w-4 h-4" />} 
-                        {isZh ? '接收' : 'Request'}
-                    </button>
-                </div>
-            </div>
+            {/* Wallet Card (Now Agent) */}
+            <VaultAgent 
+                id="UserVault"
+                label="Digital Vault"
+                goodwillBalance={goodwillBalance}
+                isZh={isZh}
+                handleTransaction={handleTransaction}
+                isTransacting={isTransacting}
+                openingPack={openingPack}
+            />
 
             {/* Booster Packs */}
             <div className="md:col-span-2 glass-panel p-6 rounded-2xl relative overflow-hidden">
