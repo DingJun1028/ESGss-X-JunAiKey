@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { universalIntelligence } from '../../services/evolutionEngine';
 import { OmniEsgTrait, UniversalLabel } from '../../types';

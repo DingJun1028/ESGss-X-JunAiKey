@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { Language } from '../types';
-import { Leaf, TrendingUp, PieChart, MapPin, Loader2, Zap, Calculator, Fuel, Save, DollarSign, AlertTriangle } from 'lucide-react';
+import { Leaf, TrendingUp, PieChart, MapPin, Loader2, Zap, Calculator, Fuel, Save, DollarSign, AlertTriangle, Cloud } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '../contexts/ToastContext';
 import { performMapQuery } from '../services/ai-service';
+import { BackendService } from '../services/backend';
 import { useCompany } from './providers/CompanyProvider';
 import { QuantumSlider } from './minimal/QuantumSlider';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
@@ -131,6 +132,7 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
   const [isMapping, setIsMapping] = useState(false);
   const [mapResult, setMapResult] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'calculator' | 'pricing'>('dashboard');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Internal Carbon Pricing State
   const [shadowPrice, setShadowPrice] = useState(50); // USD per ton
@@ -157,13 +159,41 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
       }
   };
 
-  const calculateEmissions = () => {
+  const calculateEmissions = async () => {
       const s1 = (fuelInput * DIESEL_FACTOR) / 1000;
       const s2 = (elecInput * ELEC_FACTOR) / 1000;
+      
+      // Update Local State
       updateCarbonData({ fuelConsumption: fuelInput, electricityConsumption: elecInput, scope1: parseFloat(s1.toFixed(2)), scope2: parseFloat(s2.toFixed(2)) });
       addAuditLog('Carbon Calculation', `S1=${s1.toFixed(2)}t, S2=${s2.toFixed(2)}t`);
       checkBadges();
       addToast('success', isZh ? '排放數據已更新' : 'Emission data updated', 'Calculator');
+
+      // Sync to Cloud
+      setIsSyncing(true);
+      try {
+          if (fuelInput > 0) {
+              await BackendService.logActivity({
+                  date: new Date().toISOString(),
+                  amount: fuelInput,
+                  source: 'iOS_App_Input',
+                  memo: 'Diesel Fuel Consumption'
+              });
+          }
+          if (elecInput > 0) {
+              await BackendService.logActivity({
+                  date: new Date().toISOString(),
+                  amount: elecInput,
+                  source: 'iOS_App_Input',
+                  memo: 'Electricity Grid Consumption'
+              });
+          }
+          addToast('success', isZh ? '數據已同步至企業雲端' : 'Data synced to Enterprise Cloud', 'Cloud Agent');
+      } catch (e) {
+          addToast('warning', isZh ? '雲端同步失敗 (離線模式)' : 'Cloud sync failed (Offline)', 'System');
+      } finally {
+          setIsSyncing(false);
+      }
   };
 
   return (
@@ -236,7 +266,14 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
                         <label className="text-sm font-medium text-gray-400">Electricity (kWh)</label>
                         <input type="number" value={elecInput} onChange={(e) => setElecInput(Number(e.target.value))} className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-blue-500 outline-none" />
                     </div>
-                    <button onClick={calculateEmissions} className="w-full py-4 bg-gradient-to-r from-celestial-emerald to-celestial-blue text-white font-bold rounded-xl transition-all hover:-translate-y-0.5"><Save className="w-5 h-5 inline mr-2" /> {isZh ? '更新數據' : 'Update Data'}</button>
+                    <button 
+                        onClick={calculateEmissions} 
+                        disabled={isSyncing}
+                        className="w-full py-4 bg-gradient-to-r from-celestial-emerald to-celestial-blue text-white font-bold rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isSyncing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                        {isZh ? (isSyncing ? '正在同步...' : '更新數據 & 同步至雲端') : (isSyncing ? 'Syncing...' : 'Update & Sync to Cloud')}
+                    </button>
                 </div>
             </div>
         )}

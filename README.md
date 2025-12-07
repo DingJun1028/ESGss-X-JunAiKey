@@ -1,16 +1,16 @@
 # ESGss x JunAiKey 技術完全手冊 (Technical Whitepaper)
 
-**版本:** v13.0.0 (Singularity Update)  
+**版本:** v13.1.0 (Cloud Genesis Update)  
 **類型:** Enterprise Sustainability Decision Support System (ES-DSS)  
-**核心引擎:** React 19 + Google Gemini 3 Pro + Universal Intelligence Engine
-**創世狀態:** ✅ GENESIS COMPLETE (Protocol v1.1)
+**核心引擎:** React 19 + Google Gemini 3 Pro + Universal Intelligence Engine + NoCodeBackend
+**系統狀態:** ✅ SYSTEM ONLINE | ☁️ CLOUD SYNC ACTIVE
 
 ---
 
 ## 1. 執行摘要 (Executive Summary)
 
 **ESGss (Esg Sunshine)** 是一個 AI 原生的企業永續轉型平台。
-本版本正式引入 **「奇點架構 (Singularity Architecture)」**，實現了 **[萬能元件代理] = [萬能代理元件]** 的核心哲學。
+本版本在 **「奇點架構 (Singularity Architecture)」** 的基礎上，正式整合 **NoCodeBackend** 企業雲端資料庫，實現了活動數據 (Activity Data) 的永久存儲與即時同步，確保碳帳數據具備企業級的可靠性。
 
 ---
 
@@ -32,32 +32,54 @@
 ## 3. 系統架構 (System Architecture)
 
 ### 3.1 萬能智庫 (Universal Intelligence Library)
-取代舊有的 `EvolutionEngine`，這是一個基於觀察者模式的**全域神經網路**。
+基於觀察者模式的**全域神經網路**。
 *   **創世種子 (Genesis Seeds):** 系統初始化時，自動注入核心哲學 (428_Main) 與 12 字箴言。
-*   **功能:** 儲存所有元件的「記憶 (Memory)」、「特徵 (Traits)」與「關聯 (Relationships)」。
 *   **雙向同步:**
     1.  **UI -> Intelligence:** 用戶點擊組件 -> 寫入神經記憶 -> 觸發 AI 分析。
     2.  **Intelligence -> UI:** AI 發現異常 -> 更新神經節點狀態 -> 組件自動變形 (演化)。
 
-### 3.2 萬能代理元件 (Universal Agent Component)
-透過 `withUniversalProxy` 高階組件實現。
-*   **生命週期:** Mount (代理覺醒) -> Interaction (學習) -> Unmount (休眠/歸檔)。
-*   **能力:** 每個組件都具備獨立的 `Agent ID`，並能直接調用 `ai-service` 進行自我診斷。
+### 3.2 雲端數據湖 (Cloud Data Lake - NoCodeBackend)
+系統透過 `BackendService` 與外部企業資料庫連接，實現混合雲架構。
+
+*   **Instance ID:** `54686_esgss`
+*   **主要功能:**
+    *   **活動數據日誌 (Activity Logging):** 透過 `POST /create/activity_data` 將範疇一與範疇二數據寫入雲端。
+    *   **係數管理 (Factor Management):** 透過 `GET /read/carbon_factors` 動態獲取最新的排放係數。
+*   **同步策略:** `CarbonAsset` 模組採用 **[Hybrid Sync]** 模式，前端狀態更新的同時，非同步寫入雲端資料庫，確保 UI 響應速度與數據持久性。
 
 ---
 
 ## 4. 應用功能模組 (Application Modules)
 
+*   **Carbon Asset (Updated):** 碳資產管理，包含即時雲端同步指示器與內部碳定價模擬。
 *   **My ESG:** 個人化首頁與任務系統。
 *   **Dashboard:** 企業級數據戰情室。
-*   **Carbon Asset:** 碳資產管理與內部碳定價模擬。
 *   **Strategy Hub:** 風險熱點圖與賽局理論分析。
 *   **Integration Hub:** 視覺化數據管線監控。
 *   **Report Gen:** AI 驅動的合規報告生成。
 
 ---
 
-## 5. 未來發展路線 (Future Roadmap)
+## 5. API 規格摘要 (API Specifications)
+
+### Activity Data Schema
+```typescript
+interface ActivityRecord {
+  date: string;   // ISO 8601
+  amount: number; // Consumption value
+  source: string; // e.g., 'iOS_App_Input'
+  memo?: string;  // Description
+}
+```
+
+### AI Model Config
+*   **Reasoning:** `gemini-3-pro-preview` (Thinking Budget: 2048 tokens)
+*   **General:** `gemini-2.5-flash`
+*   **Vision:** `gemini-2.5-flash` (For Quest Verification)
+
+---
+
+## 6. 未來發展路線 (Future Roadmap)
 
 ### Phase 11: Swarm Intelligence (群體智慧)
 *   **目標:** 讓不同的萬能元件代理之間能夠不經過中央編排器，直接進行「神經突觸」級別的溝通。

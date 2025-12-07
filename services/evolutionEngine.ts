@@ -1,3 +1,4 @@
+
 import { InteractionEvent, OmniEsgTrait, UniversalKnowledgeNode, UniversalLabel } from '../types';
 
 type Listener = (node: UniversalKnowledgeNode) => void;

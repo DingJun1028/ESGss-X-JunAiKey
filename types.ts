@@ -98,14 +98,14 @@ export interface ToDoItem {
  * Universal Agent Traits (The Soul's Expression)
  */
 export type OmniEsgTrait = 
-  | 'optimization' // Active AI Work
-  | 'gap-filling'  // AI Estimation
+  | 'optimization' // Active AI Work / Calculation
+  | 'gap-filling'  // AI Estimation / Missing Data
   | 'tagging'      // Classification
-  | 'performance'  // Growth
-  | 'learning'     // Training Mode
-  | 'evolution'    // High Interaction
-  | 'bridging'     // Neural Link
-  | 'seamless';    // Integration
+  | 'performance'  // Growth / Positive Trend
+  | 'learning'     // Training Mode / Active Agent
+  | 'evolution'    // High Interaction / Level Up
+  | 'bridging'     // Neural Link / Connectivity
+  | 'seamless';    // Integrated
 
 export type OmniEsgDataLink = 'live' | 'ai' | 'blockchain';
 export type OmniEsgMode = 'card' | 'list' | 'cell' | 'badge';
@@ -116,9 +116,8 @@ export type OmniEsgColor = 'emerald' | 'gold' | 'purple' | 'blue' | 'slate';
  * Universal Label (The Language of the Library)
  */
 export interface UniversalLabel {
-  id: string;
+  id?: string;
   dataType?: string;
-  importance?: 'critical' | 'high' | 'medium' | 'low';
   text: string;
   description?: string;
   definition?: string;
