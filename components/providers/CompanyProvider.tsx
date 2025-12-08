@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { DashboardWidget, AuditLogEntry, EsgCard, Quest, ToDoItem, Badge, CarbonData } from '../../types';
 
 export interface EsgScores {
@@ -234,7 +234,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const interval = setInterval(() => {
           // 1. Carbon Data Fluctuation (IoT Simulation)
-          // Randomly fluctuate Scope 1 by -2 to +3 units (simulating sensor noise or real-time usage)
           const fluctuation = Math.floor(Math.random() * 6) - 2; 
           if (fluctuation !== 0) {
               setCarbonData(prev => ({
@@ -255,120 +254,55 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
               const event = events[Math.floor(Math.random() * events.length)];
               
               setLatestEvent(event.text);
-              addAuditLog('System Event', event.text);
+              
+              // Helper to avoid circular deps in useEffect
+              const addLog = (action: string, details: string) => {
+                  const newLog: AuditLogEntry = {
+                      id: `tx-${Date.now()}`,
+                      timestamp: Date.now(),
+                      action,
+                      user: userName || 'System',
+                      details,
+                      hash: generateHash(),
+                      verified: true
+                  };
+                  setAuditLogs(prev => [newLog, ...prev].slice(0, 100));
+              };
+              
+              addLog('System Event', event.text);
 
-              if (event.impact === 'env') updateEsgScore('environmental', esgScores.environmental + event.val);
-              if (event.impact === 'gov') updateEsgScore('governance', esgScores.governance + event.val);
+              if (event.impact === 'env') {
+                  setEsgScores(prev => ({ ...prev, environmental: parseFloat(Math.min(100, Math.max(0, prev.environmental + event.val)).toFixed(1)) }));
+              }
+              if (event.impact === 'gov') {
+                  setEsgScores(prev => ({ ...prev, governance: parseFloat(Math.min(100, Math.max(0, prev.governance + event.val)).toFixed(1)) }));
+              }
           }
 
       }, 10000); // Heartbeat every 10s
 
       return () => clearInterval(interval);
-  }, [isInitialized, esgScores]);
+  }, [isInitialized, userName]); // Removed esgScores from dependency to prevent feedback loop re-initialization
 
 
   // Derived Level (1 Level per 1000 XP)
   const level = Math.floor(xp / 1000) + 1;
   const totalScore = parseFloat(((esgScores.environmental + esgScores.social + esgScores.governance) / 3).toFixed(1));
 
-  // Actions
-  const awardXp = (amount: number) => {
+  // Memoized Actions
+  const awardXp = useCallback((amount: number) => {
       setXp(prev => prev + amount);
-  };
+  }, []);
 
-  const unlockCard = (cardId: string) => {
-      if (!collectedCards.includes(cardId)) {
-          setCollectedCards(prev => [...prev, cardId]);
-      }
-  };
+  const unlockCard = useCallback((cardId: string) => {
+      setCollectedCards(prev => !prev.includes(cardId) ? [...prev, cardId] : prev);
+  }, []);
 
-  const updateCarbonData = (data: Partial<CarbonData>) => {
+  const updateCarbonData = useCallback((data: Partial<CarbonData>) => {
       setCarbonData(prev => ({ ...prev, ...data, lastUpdated: Date.now() }));
-  };
+  }, []);
 
-  const checkBadges = (): Badge[] => {
-      const newlyUnlocked: Badge[] = [];
-      const updatedBadges = badges.map(badge => {
-          if (badge.isUnlocked) return badge;
-
-          let unlocked = false;
-          // Badge Logic Engine
-          if (badge.condition === 'Score>90' && totalScore > 90) unlocked = true;
-          if (badge.condition === 'Scope1<1000' && carbonData.scope1 < 1000) unlocked = true;
-          if (badge.condition === 'GWC>5000' && goodwillBalance > 5000) unlocked = true;
-
-          if (unlocked) {
-              const newBadge = { ...badge, isUnlocked: true, unlockedAt: Date.now() };
-              newlyUnlocked.push(newBadge);
-              awardXp(500); // 500 XP for Badge
-              addAuditLog('Achievement Unlocked', `Unlocked Badge: ${badge.name}`);
-              return newBadge;
-          }
-          return badge;
-      });
-
-      if (newlyUnlocked.length > 0) {
-          setBadges(updatedBadges);
-      }
-      return newlyUnlocked;
-  };
-
-  // --- Quest Logic ---
-  const updateQuestStatus = (id: string, status: 'active' | 'verifying' | 'completed') => {
-      setQuests(prev => prev.map(q => q.id === id ? { ...q, status } : q));
-  };
-
-  const completeQuest = (id: string, xpReward: number) => {
-      const quest = quests.find(q => q.id === id);
-      if (quest && quest.status !== 'completed') {
-          updateQuestStatus(id, 'completed');
-          awardXp(xpReward);
-          addAuditLog('Quest Completed', `Completed: ${quest.title} (+${xpReward} XP)`);
-      }
-  };
-
-  // --- To-Do Logic ---
-  const addTodo = (text: string) => {
-      setTodos(prev => [...prev, { id: Date.now(), text, done: false }]);
-  };
-
-  const toggleTodo = (id: number) => {
-      setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
-  };
-
-  const deleteTodo = (id: number) => {
-      setTodos(prev => prev.filter(t => t.id !== id));
-  };
-
-  const updateBudget = (amount: number) => {
-    setBudget(prev => prev + amount);
-  };
-
-  const updateCarbonCredits = (amount: number) => {
-    setCarbonCredits(prev => prev + amount);
-  };
-
-  const updateGoodwillBalance = (amount: number) => {
-      setGoodwillBalance(prev => prev + amount);
-  };
-
-  const updateEsgScore = (category: keyof EsgScores, value: number) => {
-    setEsgScores(prev => ({
-      ...prev,
-      [category]: parseFloat(Math.min(100, Math.max(0, value)).toFixed(1)) // Clamp and round
-    }));
-  };
-
-  const addCustomWidget = (widget: Omit<DashboardWidget, 'id'>) => {
-    const newWidget = { ...widget, id: `w-${Date.now()}` };
-    setCustomWidgets(prev => [...prev, newWidget]);
-  };
-
-  const removeCustomWidget = (id: string) => {
-    setCustomWidgets(prev => prev.filter(w => w.id !== id));
-  };
-
-  const addAuditLog = (action: string, details: string) => {
+  const addAuditLog = useCallback((action: string, details: string) => {
       const newLog: AuditLogEntry = {
           id: `tx-${Date.now()}`,
           timestamp: Date.now(),
@@ -379,19 +313,117 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           verified: true
       };
       setAuditLogs(prev => [newLog, ...prev].slice(0, 100)); // Keep last 100 logs
-  };
+  }, [userName]);
 
-  const resetData = () => {
+  const checkBadges = useCallback((): Badge[] => {
+      // NOTE: We cannot easily access current state inside useCallback without dependency
+      // But passing state makes it change every render.
+      // Strategy: Use functional state update to access current state inside setBadges if needed, 
+      // but here we need to return values. 
+      // Compromise: We recalculate logic based on current state provided by caller or refs?
+      // Better: For this context, we will accept that this function changes when badges/score changes.
+      // But to optimize, we will rely on the `badges` dependency only when invoked.
+      // The real fix is complex for this snippet, so we'll keep it simple but memoized on dependencies.
+      
+      let newBadgesFound: Badge[] = [];
+      
+      setBadges(prevBadges => {
+          const updated = prevBadges.map(badge => {
+              if (badge.isUnlocked) return badge;
+              let unlocked = false;
+              if (badge.condition === 'Score>90' && totalScore > 90) unlocked = true;
+              if (badge.condition === 'Scope1<1000' && carbonData.scope1 < 1000) unlocked = true;
+              if (badge.condition === 'GWC>5000' && goodwillBalance > 5000) unlocked = true;
+
+              if (unlocked) {
+                  const newBadge = { ...badge, isUnlocked: true, unlockedAt: Date.now() };
+                  newBadgesFound.push(newBadge);
+                  return newBadge;
+              }
+              return badge;
+          });
+          return updated;
+      });
+      
+      if(newBadgesFound.length > 0) {
+          awardXp(newBadgesFound.length * 500);
+          newBadgesFound.forEach(b => addAuditLog('Achievement Unlocked', `Unlocked Badge: ${b.name}`));
+      }
+      return newBadgesFound;
+  }, [totalScore, carbonData.scope1, goodwillBalance, awardXp, addAuditLog]);
+
+  const updateQuestStatus = useCallback((id: string, status: 'active' | 'verifying' | 'completed') => {
+      setQuests(prev => prev.map(q => q.id === id ? { ...q, status } : q));
+  }, []);
+
+  const completeQuest = useCallback((id: string, xpReward: number) => {
+      setQuests(prev => {
+          const quest = prev.find(q => q.id === id);
+          if (quest && quest.status !== 'completed') {
+              // Side effects inside setState setter is bad practice usually, 
+              // but we need atomic update. Better to use useEffect or separate calls.
+              // We'll dispatch side effects after.
+              setTimeout(() => {
+                  awardXp(xpReward);
+                  addAuditLog('Quest Completed', `Completed: ${quest.title} (+${xpReward} XP)`);
+              }, 0);
+              return prev.map(q => q.id === id ? { ...q, status: 'completed' } : q);
+          }
+          return prev;
+      });
+  }, [awardXp, addAuditLog]);
+
+  const addTodo = useCallback((text: string) => {
+      setTodos(prev => [...prev, { id: Date.now(), text, done: false }]);
+  }, []);
+
+  const toggleTodo = useCallback((id: number) => {
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  }, []);
+
+  const deleteTodo = useCallback((id: number) => {
+      setTodos(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const updateBudget = useCallback((amount: number) => {
+    setBudget(prev => prev + amount);
+  }, []);
+
+  const updateCarbonCredits = useCallback((amount: number) => {
+    setCarbonCredits(prev => prev + amount);
+  }, []);
+
+  const updateGoodwillBalance = useCallback((amount: number) => {
+      setGoodwillBalance(prev => prev + amount);
+  }, []);
+
+  const updateEsgScore = useCallback((category: keyof EsgScores, value: number) => {
+    setEsgScores(prev => ({
+      ...prev,
+      [category]: parseFloat(Math.min(100, Math.max(0, value)).toFixed(1))
+    }));
+  }, []);
+
+  const addCustomWidget = useCallback((widget: Omit<DashboardWidget, 'id'>) => {
+    const newWidget = { ...widget, id: `w-${Date.now()}` };
+    setCustomWidgets(prev => [...prev, newWidget]);
+  }, []);
+
+  const removeCustomWidget = useCallback((id: string) => {
+    setCustomWidgets(prev => prev.filter(w => w.id !== id));
+  }, []);
+
+  const resetData = useCallback(() => {
     localStorage.removeItem('esgss_storage_v1');
     window.location.reload();
-  };
+  }, []);
 
-  const markBriefingRead = () => {
+  const markBriefingRead = useCallback(() => {
       setLastBriefingDate(new Date().toDateString());
-  };
+  }, []);
 
-  return (
-    <CompanyContext.Provider value={{
+  // Construct the context value object and Memoize it
+  const value = useMemo(() => ({
       companyName, setCompanyName, userName, setUserName, userRole, setUserRole,
       budget, setBudget, updateBudget, carbonCredits, setCarbonCredits, updateCarbonCredits,
       goodwillBalance, updateGoodwillBalance,
@@ -402,7 +434,18 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       resetData, customWidgets, addCustomWidget, removeCustomWidget, auditLogs, addAuditLog,
       latestEvent,
       lastBriefingDate, markBriefingRead
-    }}>
+  }), [
+      companyName, userName, userRole, budget, carbonCredits, goodwillBalance,
+      xp, level, collectedCards, badges, quests, todos, 
+      esgScores, totalScore, carbonData, customWidgets, auditLogs, latestEvent, lastBriefingDate,
+      // Include stable callbacks
+      awardXp, unlockCard, checkBadges, completeQuest, updateQuestStatus, addTodo, toggleTodo, deleteTodo,
+      updateBudget, updateCarbonCredits, updateGoodwillBalance, updateEsgScore, updateCarbonData,
+      resetData, addCustomWidget, removeCustomWidget, addAuditLog, markBriefingRead
+  ]);
+
+  return (
+    <CompanyContext.Provider value={value}>
       {children}
     </CompanyContext.Provider>
   );

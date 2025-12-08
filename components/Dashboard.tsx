@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { getMockMetrics, CHART_DATA, TRANSLATIONS } from '../constants';
 import { Wind, Activity, FileText, Zap, BrainCircuit, LayoutTemplate, Plus, Trash2, Grid, X, Globe, Map } from 'lucide-react';
@@ -18,7 +19,7 @@ interface DashboardProps {
 
 // Reusable Render Components for Widgets (Memoized outside component)
 const MainChartWidget: React.FC = React.memo(() => (
-  <div className="h-full w-full min-w-0 min-h-[300px]" style={{ height: 300 }}>
+  <div style={{ width: '100%', height: 300 }}>
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={CHART_DATA}>
         <defs>
@@ -336,7 +337,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
                              </div>
                              <div>
                                  <div className="font-bold text-white">{typeof m.label === 'string' ? m.label : m.label.text}</div>
-                                 <div className="text-xs text-gray-400">KPI Card • Small</div>
+                                 <div className="text-xs text-gray-400 KPI Card • Small">KPI Card • Small</div>
                              </div>
                              <Plus className="w-5 h-5 text-gray-500 group-hover:text-white ml-auto" />
                           </button>

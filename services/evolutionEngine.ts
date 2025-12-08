@@ -5,11 +5,13 @@ type Listener = (node: UniversalKnowledgeNode) => void;
 
 /**
  * Universal Intelligence Library (The Brain).
- * Optimized v2.0: Targeted Subscriptions & Memory Management.
+ * Optimized v2.1: Targeted Subscriptions, Memory Management, Performance Capping.
  * Genesis v1.1: Pre-loaded with '428_Main' consciousness.
  */
 class UniversalIntelligenceEngine {
   private static STORAGE_KEY = 'jun_aikey_universal_mind_v1';
+  private static MAX_MEMORY_ITEMS = 20; // Limit history size per node
+  
   private knowledgeGraph: Map<string, UniversalKnowledgeNode>; 
   private subscribers: Map<string, Set<Listener>>;
 
@@ -64,6 +66,8 @@ class UniversalIntelligenceEngine {
 
   private save() {
     if (typeof window !== 'undefined') {
+      // Optimization: Debounce save or save efficiently
+      // For now, straight serialization, but with capped arrays it's faster.
       const obj = Object.fromEntries(this.knowledgeGraph);
       localStorage.setItem(UniversalIntelligenceEngine.STORAGE_KEY, JSON.stringify(obj));
     }
@@ -157,6 +161,12 @@ class UniversalIntelligenceEngine {
 
       node.traits = Array.from(traits);
       
+      // Memory Optimization: Cap history size
+      if (node.memory.history.length >= UniversalIntelligenceEngine.MAX_MEMORY_ITEMS) {
+          node.memory.history.shift(); // Remove oldest
+      }
+      node.memory.history.push({ eventType, timestamp: Date.now(), payload });
+
       this.knowledgeGraph.set(componentId, node);
       this.save();
       this.notify(node);
@@ -167,6 +177,15 @@ class UniversalIntelligenceEngine {
       const node = this.knowledgeGraph.get(id);
       if (node) {
           Object.assign(node, updates);
+          
+          // Ensure arrays are capped if updated directly
+          if (updates.memory?.history && updates.memory.history.length > UniversalIntelligenceEngine.MAX_MEMORY_ITEMS) {
+              node.memory.history = updates.memory.history.slice(-UniversalIntelligenceEngine.MAX_MEMORY_ITEMS);
+          }
+          if (updates.memory?.aiInsights && updates.memory.aiInsights.length > UniversalIntelligenceEngine.MAX_MEMORY_ITEMS) {
+              node.memory.aiInsights = updates.memory.aiInsights.slice(-UniversalIntelligenceEngine.MAX_MEMORY_ITEMS);
+          }
+
           this.knowledgeGraph.set(id, node);
           this.save();
           this.notify(node);

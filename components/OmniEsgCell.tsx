@@ -2,9 +2,7 @@
 import React, { useState } from 'react';
 import { 
   BarChart3, TrendingUp, TrendingDown, Minus, LucideIcon, 
-  Activity, BrainCircuit, Rocket, 
-  Infinity, Tag, Loader2, ScanLine, Lock, HelpCircle, Puzzle,
-  Link2
+  Activity, Puzzle, Tag, HelpCircle
 } from 'lucide-react';
 import { OmniEsgTrait, OmniEsgDataLink, OmniEsgMode, OmniEsgConfidence, OmniEsgColor, UniversalLabel } from '../types';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
@@ -18,7 +16,8 @@ import { QuantumAiTrigger } from './minimal/QuantumAiTrigger';
 import { QuantumValueEditor } from './minimal/QuantumValueEditor';
 import { InsightTooltip } from './minimal/InsightTooltip';
 
-const getTheme = (color: OmniEsgColor) => ({
+// Static Theme Configuration (Optimization: Defined once)
+const THEMES = {
   emerald: { 
     border: 'group-hover:border-emerald-500/40', 
     glow: 'bg-emerald-500', 
@@ -54,7 +53,9 @@ const getTheme = (color: OmniEsgColor) => ({
     iconBg: 'bg-slate-500/10',
     gradient: 'from-slate-500/20' 
   },
-}[color]);
+};
+
+const getTheme = (color: OmniEsgColor) => THEMES[color] || THEMES.emerald;
 
 interface OmniEsgCellBaseProps {
   id?: string;
@@ -94,6 +95,7 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
   const isRichLabel = typeof label === 'object';
   const labelText = isRichLabel ? (label as UniversalLabel).text : (label as string);
   
+  // Memoize traits set if performance issue arises, but Set creation is cheap enough for now
   const activeTraits = Array.from(new Set([...traits, ...adaptiveTraits]));
 
   const handleInternalAiTrigger = async () => {
@@ -142,7 +144,7 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
   const isGapFilling = activeTraits.includes('gap-filling');
   const isTagging = activeTraits.includes('tagging');
   const isPerformance = activeTraits.includes('performance');
-  const isLearning = activeTraits.includes('learning') || isAgentActive; // Use synced state
+  const isLearning = activeTraits.includes('learning') || isAgentActive; 
   const isEvolution = activeTraits.includes('evolution');
   const isBridging = activeTraits.includes('bridging');
   const isSeamless = activeTraits.includes('seamless');
@@ -262,7 +264,7 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
                 <div className="flex items-center gap-2">
                    {trend ? (
                       <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${trend.direction === 'up' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20'}`}>
-                         {isPerformance && trend.direction === 'up' ? <Rocket className="w-3 h-3 animate-pulse text-celestial-gold" /> : (trend.direction === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />)}
+                         {isPerformance && trend.direction === 'up' ? <TrendingUp className="w-3 h-3 animate-pulse text-celestial-gold" /> : (trend.direction === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />)}
                          {Math.abs(trend.value)}%
                       </span>
                    ) : <span className="text-xs text-gray-600 flex items-center gap-1"><Minus className="w-3 h-3"/> Stable</span>}
@@ -274,7 +276,7 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
         
         {isEvolution && (
            <div className="absolute -right-6 -bottom-6 opacity-5 group-hover:opacity-10 transition-all duration-1000 group-hover:rotate-45 z-0">
-              <Infinity className="w-32 h-32 text-white" />
+              <Activity className="w-32 h-32 text-white" />
            </div>
         )}
       </div>
@@ -332,13 +334,14 @@ const OmniEsgCellBase: React.FC<OmniEsgCellProps> = (props) => {
       );
   }
   
+  // Badge Mode (Smallest Volume)
   if (mode === 'badge') {
      return (
         <div className="flex items-center gap-2 group/badge" aria-label={`Badge: ${value}`}>
            <div className="w-20 h-1.5 bg-gray-800 rounded-full overflow-hidden relative border border-white/5">
                <div className={`h-full absolute left-0 top-0 rounded-full transition-all duration-1000 ${theme.glow} ${confidence === 'high' ? 'w-full' : 'w-1/2'}`} />
            </div>
-           {verified && <Lock className="w-3 h-3 text-emerald-400" />}
+           {/* Quantum Trigger included for agent access */}
            <QuantumAiTrigger onClick={onAiAnalyze} onInternalTrigger={handleInternalAiTrigger} />
         </div>
      );

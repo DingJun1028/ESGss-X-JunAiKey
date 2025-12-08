@@ -50,7 +50,7 @@ const MarketOracleBase: React.FC<MarketOracleProps> = ({ data, isZh, adaptiveTra
                 )}
             </div>
             
-            <div className="flex-1 w-full min-h-[300px]" style={{ height: 300 }}>
+            <div style={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data}>
                         <defs>

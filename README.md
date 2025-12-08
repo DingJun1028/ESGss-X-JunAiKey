@@ -1,3 +1,4 @@
+
 # ESGss x JunAiKey 技術完全手冊 (Technical Whitepaper)
 
 **版本:** v13.1.0 (Cloud Genesis Update)  
@@ -49,14 +50,56 @@
 
 ---
 
-## 4. 應用功能模組 (Application Modules)
+## 4. 資料庫部署 (Database Deployment)
 
-*   **Carbon Asset (Updated):** 碳資產管理，包含即時雲端同步指示器與內部碳定價模擬。
-*   **My ESG:** 個人化首頁與任務系統。
-*   **Dashboard:** 企業級數據戰情室。
-*   **Strategy Hub:** 風險熱點圖與賽局理論分析。
-*   **Integration Hub:** 視覺化數據管線監控。
-*   **Report Gen:** AI 驅動的合規報告生成。
+若需重建資料庫，請在 NoCodeBackend 的 SQL Editor 執行以下 **God Mode SQL**：
+
+```sql
+-- 1. 靈感種子表
+CREATE TABLE IF NOT EXISTS knowledge_seeds (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    type VARCHAR(50) DEFAULT 'Note',
+    tags VARCHAR(255),
+    source VARCHAR(50) DEFAULT 'iOS',
+    status VARCHAR(50) DEFAULT 'Inbox',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. 介面配置表
+CREATE TABLE IF NOT EXISTS interface_config (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    btn_id VARCHAR(50) NOT NULL,
+    label VARCHAR(100) NOT NULL,
+    icon VARCHAR(50),
+    action_type VARCHAR(50) NOT NULL,
+    payload TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 3. 活動數據表
+CREATE TABLE IF NOT EXISTS activity_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    date DATETIME,
+    amount FLOAT,
+    source VARCHAR(50),
+    memo TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. 碳排放係數表
+CREATE TABLE IF NOT EXISTS carbon_factors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    value FLOAT,
+    unit VARCHAR(50),
+    region VARCHAR(50),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+執行後，可運行 `python init_db.py` 進行數據初始化。
 
 ---
 
@@ -76,14 +119,6 @@ interface ActivityRecord {
 *   **Reasoning:** `gemini-3-pro-preview` (Thinking Budget: 2048 tokens)
 *   **General:** `gemini-2.5-flash`
 *   **Vision:** `gemini-2.5-flash` (For Quest Verification)
-
----
-
-## 6. 未來發展路線 (Future Roadmap)
-
-### Phase 11: Swarm Intelligence (群體智慧)
-*   **目標:** 讓不同的萬能元件代理之間能夠不經過中央編排器，直接進行「神經突觸」級別的溝通。
-    *   例：`CarbonCell` 變紅時，自動觸發 `BudgetCell` 進行成本試算。
 
 ---
 

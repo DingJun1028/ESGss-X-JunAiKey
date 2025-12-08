@@ -54,7 +54,7 @@ const SkillGalaxyBase: React.FC<SkillGalaxyProps> = ({ data, isZh, adaptiveTrait
                 {isZh ? '技能星系 (Skill Galaxy)' : 'Skill Galaxy'}
             </h3>
             
-            <div className="h-[400px] w-full relative z-10" style={{ height: 400 }}>
+            <div className="relative z-10" style={{ width: '100%', height: 400 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
                         <PolarGrid stroke="rgba(255,255,255,0.1)" />

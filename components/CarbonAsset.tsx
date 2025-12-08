@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { Language } from '../types';
-import { Leaf, TrendingUp, PieChart, MapPin, Loader2, Zap, Calculator, Fuel, Save, DollarSign, AlertTriangle, Cloud } from 'lucide-react';
+import { Leaf, TrendingUp, PieChart, MapPin, Loader2, Zap, Calculator, Fuel, Save, DollarSign, AlertTriangle, Cloud, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '../contexts/ToastContext';
 import { performMapQuery } from '../services/ai-service';
@@ -140,9 +140,37 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
   // Calculator State
   const [fuelInput, setFuelInput] = useState(carbonData.fuelConsumption);
   const [elecInput, setElecInput] = useState(carbonData.electricityConsumption);
+  
+  // Dynamic Factors State (Default fallbacks)
+  const [factors, setFactors] = useState({ diesel: 2.68, electricity: 0.509 });
+  const [isLoadingFactors, setIsLoadingFactors] = useState(false);
 
-  const DIESEL_FACTOR = 2.68; 
-  const ELEC_FACTOR = 0.509;
+  useEffect(() => {
+      const loadFactors = async () => {
+          setIsLoadingFactors(true);
+          try {
+              const remoteFactors = await BackendService.fetchFactors();
+              if (remoteFactors && remoteFactors.length > 0) {
+                  const newFactors = { ...factors };
+                  remoteFactors.forEach((f: any) => {
+                      if (f.name === 'diesel') newFactors.diesel = parseFloat(f.value);
+                      if (f.name === 'electricity') newFactors.electricity = parseFloat(f.value);
+                  });
+                  setFactors(newFactors);
+                  // Silent toast on success to avoid spamming
+                  // addToast('info', 'Factors synced from cloud.', 'System');
+              }
+          } catch (e) {
+              console.warn("Using offline factors");
+          } finally {
+              setIsLoadingFactors(false);
+          }
+      };
+      
+      if (activeTab === 'calculator') {
+          loadFactors();
+      }
+  }, [activeTab]);
 
   const handleLocateSupplier = async () => {
       if(!mapQuery.trim()) return;
@@ -160,12 +188,12 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
   };
 
   const calculateEmissions = async () => {
-      const s1 = (fuelInput * DIESEL_FACTOR) / 1000;
-      const s2 = (elecInput * ELEC_FACTOR) / 1000;
+      const s1 = (fuelInput * factors.diesel) / 1000;
+      const s2 = (elecInput * factors.electricity) / 1000;
       
       // Update Local State
       updateCarbonData({ fuelConsumption: fuelInput, electricityConsumption: elecInput, scope1: parseFloat(s1.toFixed(2)), scope2: parseFloat(s2.toFixed(2)) });
-      addAuditLog('Carbon Calculation', `S1=${s1.toFixed(2)}t, S2=${s2.toFixed(2)}t`);
+      addAuditLog('Carbon Calculation', `S1=${s1.toFixed(2)}t, S2=${s2.toFixed(2)}t (Factors: D=${factors.diesel}, E=${factors.electricity})`);
       checkBadges();
       addToast('success', isZh ? '排放數據已更新' : 'Emission data updated', 'Calculator');
 
@@ -177,7 +205,7 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
                   date: new Date().toISOString(),
                   amount: fuelInput,
                   source: 'iOS_App_Input',
-                  memo: 'Diesel Fuel Consumption'
+                  memo: `Diesel Fuel (Factor: ${factors.diesel})`
               });
           }
           if (elecInput > 0) {
@@ -185,7 +213,7 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
                   date: new Date().toISOString(),
                   amount: elecInput,
                   source: 'iOS_App_Input',
-                  memo: 'Electricity Grid Consumption'
+                  memo: `Grid Electricity (Factor: ${factors.electricity})`
               });
           }
           addToast('success', isZh ? '數據已同步至企業雲端' : 'Data synced to Enterprise Cloud', 'Cloud Agent');
@@ -222,7 +250,7 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border-white/5 min-h-[400px]">
                     <h3 className="text-lg font-semibold text-white mb-6">{isZh ? '排放趨勢' : 'Emissions Trend'}</h3>
-                    <div className="h-[300px] w-full">
+                    <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={EMISSION_DATA}>
                                 <defs>
@@ -256,14 +284,24 @@ export const CarbonAsset: React.FC<CarbonAssetProps> = ({ language }) => {
 
         {activeTab === 'calculator' && (
             <div className="glass-panel p-8 rounded-2xl border border-white/10 max-w-2xl mx-auto">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><Calculator className="w-6 h-6 text-celestial-blue" /> {isZh ? '活動數據輸入' : 'Activity Data Input'}</h3>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2"><Calculator className="w-6 h-6 text-celestial-blue" /> {isZh ? '活動數據輸入' : 'Activity Data Input'}</h3>
+                    {isLoadingFactors && <div className="text-xs text-celestial-purple animate-pulse flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin"/> {isZh ? '同步係數中...' : 'Syncing Factors...'}</div>}
+                </div>
+                
                 <div className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Fuel (Liters)</label>
+                        <div className="flex justify-between">
+                            <label className="text-sm font-medium text-gray-400">Fuel (Liters)</label>
+                            <span className="text-xs text-gray-500 font-mono">Factor: {factors.diesel}</span>
+                        </div>
                         <input type="number" value={fuelInput} onChange={(e) => setFuelInput(Number(e.target.value))} className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-emerald-500 outline-none" />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Electricity (kWh)</label>
+                        <div className="flex justify-between">
+                            <label className="text-sm font-medium text-gray-400">Electricity (kWh)</label>
+                            <span className="text-xs text-gray-500 font-mono">Factor: {factors.electricity}</span>
+                        </div>
                         <input type="number" value={elecInput} onChange={(e) => setElecInput(Number(e.target.value))} className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-blue-500 outline-none" />
                     </div>
                     <button 
