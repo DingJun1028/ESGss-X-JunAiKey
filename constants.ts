@@ -25,7 +25,8 @@ export const TRANSLATIONS = {
       healthCheck: 'Health Check',
       universalTools: 'Universal Tools',
       fundraising: 'Fundraising',
-      aboutUs: 'About Us'
+      aboutUs: 'About Us',
+      universalBackend: 'Universal Backend'
     },
     modules: {
       myEsg: { title: 'My ESG Cockpit', desc: 'Your personalized sustainability command center.' },
@@ -108,7 +109,8 @@ export const TRANSLATIONS = {
       healthCheck: '全方位健檢 (Health Check)',
       universalTools: '萬能工具 (Universal Tools)',
       fundraising: '善向募資 (Fundraising)',
-      aboutUs: '關於我們 (About Us)'
+      aboutUs: '關於我們 (About Us)',
+      universalBackend: '萬能管理後臺 (Backend Zone)'
     },
     modules: {
       myEsg: { title: '我的 ESG (My ESG)', desc: '您的個人化永續戰情室與成長中心。' },

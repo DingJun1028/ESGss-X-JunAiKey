@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, BrainCircuit, Search, Mic, MessageSquare, Book, StickyNote, Tag, CheckSquare, Server, Star, CreditCard, Layers } from 'lucide-react';
+import { Bot, X, Send, Sparkles, BrainCircuit, Search, Mic, MessageSquare, Book, StickyNote, Tag, CheckSquare, Server, Star, Layers, Eye } from 'lucide-react';
 import { ChatMessage, Language, View } from '../types';
 import { streamChat } from '../services/ai-service';
 import { useToast } from '../contexts/ToastContext';
@@ -11,6 +11,7 @@ import { universalIntelligence } from '../services/evolutionEngine';
 interface AiAssistantProps {
   language: Language;
   onNavigate?: (view: View) => void;
+  currentView?: View; // New Prop for Context Awareness
 }
 
 interface AgentStep {
@@ -18,7 +19,7 @@ interface AgentStep {
     icon: React.ElementType;
 }
 
-export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }) => {
+export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate, currentView }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
@@ -47,7 +48,9 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
   const recognitionRef = useRef<any>(null);
   
   const { addToast } = useToast();
-  const { userName, addNote } = useCompany(); 
+  // Get full company context for injection
+  const companyContext = useCompany(); 
+  const { userName, addNote, companyName, esgScores, carbonData, budget } = companyContext;
   
   const STORAGE_KEY = 'esgss_universal_memory_v1';
   const isZh = language === 'zh-TW';
@@ -98,8 +101,10 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
       if (isCommand) {
           addToast('success', isZh ? `執行指令: ${text}` : `Executing: ${text}`, 'JunAiKey Voice');
       } else {
-          addNote(text, ['Voice Memo'], 'voice');
-          addToast('success', isZh ? '已存入萬能筆記' : 'Saved to Universal Notes', 'Memory');
+          // If not navigation, treat as chat input
+          setIsChatOpen(true);
+          setInput(text);
+          // Auto-send could be added here, but safer to let user confirm
       }
   };
 
@@ -115,7 +120,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
       }
   };
 
-  // --- Interaction Handlers ---
+  // --- Interaction Handlers (Unchanged) ---
   const handlePointerDown = (e: React.PointerEvent) => {
       e.preventDefault();
       setIsDragging(true);
@@ -124,21 +129,18 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
       dragStartPos.current = { x: e.clientX - position.x, y: e.clientY - position.y };
       (e.target as Element).setPointerCapture(e.pointerId);
 
-      // Start Long Press Timer
       longPressTimer.current = setTimeout(() => {
           isLongPress.current = true;
           startVoice();
-      }, 800); // 800ms long press
+      }, 800); 
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
       if (!isDragging) return;
       const newX = e.clientX - dragStartPos.current.x;
       const newY = e.clientY - dragStartPos.current.y;
-      
-      // If moved significantly, cancel click/longpress logic
       if (Math.abs(newX - position.x) > 5 || Math.abs(newY - position.y) > 5) {
-          isDragClick.current = true; // It's a drag
+          isDragClick.current = true;
           if (longPressTimer.current) clearTimeout(longPressTimer.current);
       }
       setPosition({ x: newX, y: newY });
@@ -147,25 +149,20 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
   const handlePointerUp = (e: React.PointerEvent) => {
       setIsDragging(false);
       (e.target as Element).releasePointerCapture(e.pointerId);
-      
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
 
       if (!isDragClick.current && !isLongPress.current) {
-          // This is a valid click
           clickCount.current += 1;
-
           if (clickCount.current === 1) {
               singleClickTimer.current = setTimeout(() => {
-                  // Single Click Action
                   clickCount.current = 0;
                   if (!isMenuOpen) {
                       setIsChatOpen(prev => !prev);
                   } else {
                       setIsMenuOpen(false);
                   }
-              }, 250); // Delay to wait for double click
+              }, 250);
           } else if (clickCount.current === 2) {
-              // Double Click Action
               if (singleClickTimer.current) clearTimeout(singleClickTimer.current);
               clickCount.current = 0;
               setIsChatOpen(false);
@@ -185,7 +182,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
       }
   };
 
-  // --- AI Chat Logic ---
+  // --- AI Chat Logic (Enhanced) ---
   useEffect(() => {
     const savedMemory = localStorage.getItem(STORAGE_KEY);
     if (savedMemory) {
@@ -212,8 +209,32 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
     setIsTyping(true);
     
     try {
-        setCurrentStep({ text: "Reasoning...", icon: BrainCircuit });
-        const stream = streamChat(`User: ${userName}. ${input}`, language);
+        setCurrentStep({ text: "Analyzing Context...", icon: BrainCircuit });
+        
+        // --- Context Injection ---
+        // Construct a prompt that knows the user's current location and company state
+        const systemState = {
+            currentView: currentView || 'Unknown',
+            user: userName,
+            company: companyName,
+            metrics: {
+                scores: esgScores,
+                carbon: carbonData,
+                budget: budget
+            }
+        };
+        
+        const contextHeader = `
+        [System Context]
+        User is currently viewing: ${currentView}
+        Company State: ${JSON.stringify(systemState)}
+        
+        Instruction: Provide a concise, helpful response based on the current view. If on a specific module (e.g., Carbon), offer specific insights related to that module's data.
+        `;
+
+        const fullPrompt = `${contextHeader}\n\nUser Query: ${input}`;
+
+        const stream = streamChat(fullPrompt, language);
         const modelMsgId = (Date.now() + 1).toString();
         setMessages(prev => [...prev, { id: modelMsgId, role: 'model', text: '', timestamp: new Date() }]);
         
@@ -227,7 +248,6 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
     } catch(e) { setIsTyping(false); setCurrentStep(null); addToast('error', 'Connection Failed', 'Error'); }
   };
 
-  // Satellite Buttons Config - Universal Tool Keys
   const satellites = [
       { id: 'album', icon: Layers, label: isZh ? '萬能卡冊' : 'Universal Card Album', angle: 270, action: () => handleToolClick('Universal Card Album', View.CARD_GAME) },
       { id: 'notes', icon: StickyNote, label: isZh ? '萬能筆記' : 'Universal Notes', angle: 315, action: () => handleToolClick('Universal Notes', View.UNIVERSAL_TOOLS) },
@@ -249,7 +269,6 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
                 cursor: isDragging ? 'grabbing' : 'pointer'
             }}
         >
-            {/* Satellite Menu System */}
             <div className={`absolute inset-0 transition-all duration-500 ease-out ${isMenuOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-0 pointer-events-none'}`}>
                 {satellites.map((sat) => {
                     const radius = 80;
@@ -275,7 +294,6 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160px] h-[160px] rounded-full border border-white/5 animate-spin-slow pointer-events-none" />
             </div>
 
-            {/* Main Optical Orb (The Core) */}
             <div 
                 ref={buttonRef}
                 onPointerDown={handlePointerDown}
@@ -298,11 +316,13 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
         </div>
       )}
 
-      {/* Chat Window */}
       {isChatOpen && (
         <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-[400px] h-[600px] max-h-[80vh] flex flex-col rounded-3xl glass-panel overflow-hidden animate-fade-in border border-white/10 shadow-2xl backdrop-blur-xl bg-slate-900/90">
              <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
-                <h3 className="font-bold text-white flex items-center gap-2"><Sparkles className="w-4 h-4 text-celestial-gold"/> JunAiKey</h3>
+                <div className="flex flex-col">
+                    <h3 className="font-bold text-white flex items-center gap-2"><Sparkles className="w-4 h-4 text-celestial-gold"/> JunAiKey</h3>
+                    {currentView && <span className="text-[10px] text-celestial-emerald flex items-center gap-1"><Eye className="w-3 h-3"/> {isZh ? '正在查看: ' : 'Observing: '}{currentView}</span>}
+                </div>
                 <button onClick={() => setIsChatOpen(false)}><X className="w-5 h-5 text-gray-400 hover:text-white"/></button>
              </div>
              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
@@ -323,7 +343,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({ language, onNavigate }
                     value={input} 
                     onChange={e => setInput(e.target.value)} 
                     onKeyDown={e => e.key === 'Enter' && handleSend()}
-                    placeholder="Ask JunAiKey..."
+                    placeholder={isZh ? "詢問 JunAiKey (具備當前頁面感知)..." : "Ask JunAiKey (Context Aware)..."}
                     className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-celestial-emerald"
                  />
                  <button onClick={handleSend} className="p-2 bg-celestial-emerald rounded-xl text-white"><Send className="w-5 h-5"/></button>

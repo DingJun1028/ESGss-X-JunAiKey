@@ -1,7 +1,11 @@
 
 import React, { useState } from 'react';
 import { Language } from '../types';
-import { Wrench, Book, Calendar as CalendarIcon, StickyNote, Database, Search, ArrowRight, Check, X, Link as LinkIcon, RefreshCw, ChevronLeft, ChevronRight, Plus, Trash2, Edit2, Save } from 'lucide-react';
+import { 
+    Wrench, Book, Calendar as CalendarIcon, StickyNote, Database, Search, 
+    ArrowRight, Check, X, Link as LinkIcon, RefreshCw, ChevronLeft, ChevronRight, 
+    Plus, Trash2, Edit2, Save, Share, Copy, Download, Wand2, ClipboardList
+} from 'lucide-react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useToast } from '../contexts/ToastContext';
 import { useCompany } from './providers/CompanyProvider';
@@ -14,20 +18,12 @@ const GLOSSARY = [
     { term: 'Scope 1', def: 'Direct emissions from owned or controlled sources.' },
     { term: 'Scope 2', def: 'Indirect emissions from the generation of purchased energy.' },
     { term: 'Scope 3', def: 'All other indirect emissions that occur in the value chain.' },
-    { term: 'Double Materiality', def: 'Impact on the company (financial) AND impact on the world (environmental/social).' },
     { term: 'CBAM', def: 'Carbon Border Adjustment Mechanism (EU carbon tariff).' },
-    { term: 'Greenwashing', def: 'Misleading information about how a company’s products are more environmentally sound.' },
-    { term: 'SBTi', def: 'Science Based Targets initiative for reducing emissions.' },
-    { term: 'TNFD', def: 'Taskforce on Nature-related Financial Disclosures. Framework for nature-related risk management.' },
-    { term: 'SROI', def: 'Social Return on Investment. A method for measuring values that are not traditionally reflected in financial statements.' },
-    { term: 'CDP', def: 'Carbon Disclosure Project. Global disclosure system for investors, companies, cities to manage environmental impacts.' },
 ];
 
 const INTEGRATIONS = [
     { id: 'sap', name: 'SAP S/4HANA', status: 'connected', type: 'ERP' },
     { id: 'salesforce', name: 'Salesforce Net Zero', status: 'connected', type: 'CRM' },
-    { id: 'google', name: 'Google BigQuery', status: 'disconnected', type: 'Data Lake' },
-    { id: 'iot', name: 'Siemens MindSphere', status: 'connected', type: 'IoT' },
 ];
 
 export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
@@ -44,10 +40,10 @@ export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
   const [editInput, setEditInput] = useState('');
 
   const tools = [
-      { id: 'notes', icon: StickyNote, label: isZh ? '萬能筆記' : 'Universal Notes' },
-      { id: 'library', icon: Book, label: isZh ? '萬能智庫' : 'Universal Library' },
-      { id: 'calendar', icon: CalendarIcon, label: isZh ? '萬能日曆' : 'Universal Calendar' },
-      { id: 'integration', icon: Database, label: isZh ? '萬能集成' : 'Universal Integration' },
+      { id: 'notes', icon: StickyNote, label: isZh ? '筆記' : 'Notes', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+      { id: 'library', icon: Book, label: isZh ? '智庫' : 'Library', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+      { id: 'calendar', icon: CalendarIcon, label: isZh ? '日曆' : 'Calendar', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+      { id: 'integration', icon: Database, label: isZh ? '集成' : 'Connect', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
   ];
 
   const handleConnect = (id: string) => {
@@ -61,7 +57,34 @@ export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
       if(!noteInput.trim()) return;
       addNote(noteInput, ['Manual']);
       setNoteInput('');
-      addToast('success', 'Note added', 'System');
+      addToast('success', isZh ? '筆記已儲存' : 'Note saved', 'System');
+  };
+
+  const handleImportFromClipboard = async () => {
+      try {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+              addNote(text, ['Imported']);
+              addToast('success', isZh ? '已從剪貼簿匯入' : 'Imported from Clipboard', 'Shortcuts');
+          } else {
+              addToast('info', isZh ? '剪貼簿為空' : 'Clipboard empty', 'System');
+          }
+      } catch (err) {
+          addToast('error', isZh ? '無法存取剪貼簿' : 'Clipboard access denied', 'Error');
+      }
+  };
+
+  const handleShareList = () => {
+      const notesText = universalNotes.map(n => `- ${n.content}`).join('\n');
+      if (navigator.share) {
+          navigator.share({
+              title: 'ESGss Notes',
+              text: notesText
+          }).catch(console.error);
+      } else {
+          navigator.clipboard.writeText(notesText);
+          addToast('success', isZh ? '清單已複製' : 'List copied to clipboard', 'Share');
+      }
   };
 
   const handleUpdateNote = (id: string) => {
@@ -71,141 +94,110 @@ export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
       addToast('success', 'Note updated', 'System');
   };
 
-  const renderCalendar = () => {
-      const days = Array.from({ length: 30 }, (_, i) => i + 1);
-      const events = [5, 12, 24, 28]; // Mock event dates
-      
-      return (
-          <div className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-lg font-bold text-white">September 2025</h4>
-                  <div className="flex gap-2">
-                      <button className="p-1 hover:bg-white/10 rounded"><ChevronLeft className="w-4 h-4 text-gray-400" /></button>
-                      <button className="p-1 hover:bg-white/10 rounded"><ChevronRight className="w-4 h-4 text-gray-400" /></button>
-                  </div>
-              </div>
-              <div className="grid grid-cols-7 gap-2 text-center text-xs text-gray-500 mb-2 font-bold uppercase tracking-wider">
-                  {['S','M','T','W','T','F','S'].map(d => <div key={d}>{d}</div>)}
-              </div>
-              <div className="grid grid-cols-7 gap-2">
-                  {[...Array(2)].map((_, i) => <div key={`empty-${i}`} />)} {/* Offset */}
-                  {days.map(day => {
-                      const hasEvent = events.includes(day);
-                      return (
-                          <div 
-                            key={day} 
-                            className={`aspect-square rounded-lg flex flex-col items-center justify-center relative cursor-pointer transition-all hover:bg-white/10 group ${day === 15 ? 'bg-celestial-emerald/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-white/5 text-gray-300 border border-white/5'}`}
-                            onClick={() => hasEvent && addToast('info', `Event on Sep ${day}: CSRD Audit Prep`, 'Calendar')}
-                          >
-                              {day}
-                              {hasEvent && <div className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-celestial-gold animate-pulse" />}
-                          </div>
-                      );
-                  })}
-              </div>
-              <div className="mt-4 pt-4 border-t border-white/10">
-                  <div className="text-xs font-bold text-gray-400 uppercase mb-2">{isZh ? '即將到來' : 'Upcoming Events'}</div>
-                  <div className="space-y-2">
-                      <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5">
-                          <div className="text-center bg-white/10 px-2 py-1 rounded text-xs font-bold text-white min-w-[3rem]">SEP 24</div>
-                          <div className="text-sm text-gray-200">Carbon Data Audit</div>
-                      </div>
-                      <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5">
-                          <div className="text-center bg-white/10 px-2 py-1 rounded text-xs font-bold text-white min-w-[3rem]">SEP 28</div>
-                          <div className="text-sm text-gray-200">Board ESG Meeting</div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      );
-  };
-
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
-        <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20">
-                <Wrench className="w-8 h-8 text-purple-400" />
-            </div>
-            <div>
-                <h2 className="text-3xl font-bold text-white">{isZh ? '萬能工具專區' : 'Universal Tools'}</h2>
-                <p className="text-gray-400">{isZh ? 'JunAiKey 生態系核心工具組' : 'Core Toolkit of JunAiKey Ecosystem'}</p>
+    <div className="space-y-6 animate-fade-in pb-24 h-full flex flex-col">
+        {/* Header Area */}
+        <div className="flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                    <Wrench className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-bold text-white">{isZh ? '萬能工作專區' : 'Universal Workspace'}</h2>
+                    <p className="text-gray-400 text-sm">{isZh ? '您的個人化永續生產力中心' : 'Your personalized sustainability productivity hub'}</p>
+                </div>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1 grid grid-cols-2 lg:grid-cols-1 gap-2 self-start">
+        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+            {/* Left Rail - Tools Widget (Compact) */}
+            <div className="lg:w-20 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-visible shrink-0 pb-2">
                 {tools.map((tool: any) => (
                     <button 
                         key={tool.id}
                         onClick={() => setActiveTool(tool.id as any)}
-                        className={`flex items-center gap-3 p-4 rounded-xl transition-all border text-left ${activeTool === tool.id ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'}`}
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all border w-20 h-20 shrink-0 ${activeTool === tool.id ? `${tool.color} shadow-lg scale-105` : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'}`}
                     >
-                        <tool.icon className="w-5 h-5 shrink-0" />
-                        <span className="font-bold text-sm truncate">{tool.label}</span>
+                        <tool.icon className="w-6 h-6 mb-1" />
+                        <span className="text-[10px] font-bold">{tool.label}</span>
                     </button>
                 ))}
             </div>
 
-            <div className="lg:col-span-3 glass-panel p-8 rounded-2xl border border-white/10 min-h-[500px] flex flex-col">
+            {/* Right Side - Usable Workspace */}
+            <div className="flex-1 glass-panel rounded-2xl border border-white/10 flex flex-col overflow-hidden relative bg-slate-900/50">
+                
                 {activeTool === 'notes' && (
-                    <div className="flex flex-col h-full animate-fade-in">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-white">{isZh ? '萬能筆記 (Universal Notes)' : 'Universal Notes'}</h3>
-                            <button onClick={() => addToast('success', 'Syncing to Cloud...', 'System')} className="text-xs flex items-center gap-1 text-purple-400 hover:text-purple-300">
-                                <RefreshCw className="w-3 h-3" /> Auto-sync
+                    <div className="flex flex-col h-full">
+                        {/* Apple Shortcuts-style Action Bar */}
+                        <div className="p-4 border-b border-white/10 bg-white/5 flex gap-3 overflow-x-auto no-scrollbar items-center">
+                            <button onClick={handleImportFromClipboard} className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-lg text-xs font-bold border border-blue-500/30 hover:bg-blue-500/30 transition-all whitespace-nowrap">
+                                <ClipboardList className="w-3.5 h-3.5" />
+                                {isZh ? '貼上' : 'Paste'}
                             </button>
-                        </div>
-                        
-                        {/* Note Input */}
-                        <div className="flex gap-2 mb-6">
-                            <input 
-                                type="text"
-                                value={noteInput}
-                                onChange={(e) => setNoteInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                                placeholder={isZh ? "新增筆記 (Enter)..." : "Add a note (Enter)..."}
-                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
-                            />
-                            <button onClick={handleAddNote} className="p-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-colors">
-                                <Plus className="w-5 h-5" />
+                            <button onClick={handleShareList} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs font-bold border border-emerald-500/30 hover:bg-emerald-500/30 transition-all whitespace-nowrap">
+                                <Share className="w-3.5 h-3.5" />
+                                {isZh ? '分享清單' : 'Share List'}
                             </button>
+                            <div className="w-[1px] h-6 bg-white/10 mx-1" />
+                            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">{isZh ? '快速筆記' : 'Quick Note'}</span>
                         </div>
 
-                        {/* Note List */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                        {/* Input Area - Always usable */}
+                        <div className="p-4 shrink-0">
+                            <div className="flex gap-2 relative group">
+                                <input 
+                                    type="text"
+                                    value={noteInput}
+                                    onChange={(e) => setNoteInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                                    placeholder={isZh ? "輸入想法，按 Enter 儲存..." : "Type a note, press Enter to save..."}
+                                    className="flex-1 bg-slate-950/50 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-yellow-500/50 transition-all text-sm shadow-inner"
+                                />
+                                <button 
+                                    onClick={handleAddNote} 
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-yellow-500/80 hover:bg-yellow-500 text-black rounded-lg transition-all opacity-0 group-focus-within:opacity-100"
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Notes List */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-4 space-y-3">
                             {universalNotes.length === 0 ? (
-                                <div className="text-center text-gray-500 py-12">
-                                    <StickyNote className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                    {isZh ? '尚無筆記' : 'No notes yet'}
+                                <div className="text-center text-gray-500 py-12 flex flex-col items-center">
+                                    <StickyNote className="w-12 h-12 mb-4 opacity-20" />
+                                    <p className="text-sm">{isZh ? '這裡空空如也，開始記錄吧！' : 'Workspace empty. Start typing!'}</p>
                                 </div>
                             ) : (
                                 universalNotes.map(note => (
-                                    <div key={note.id} className="p-4 rounded-xl bg-white/5 border border-white/5 group hover:border-purple-500/30 transition-all">
+                                    <div key={note.id} className="p-4 rounded-xl bg-white/5 border border-white/5 group hover:border-white/20 transition-all flex justify-between items-start gap-4">
                                         {editingNoteId === note.id ? (
-                                            <div className="flex gap-2">
+                                            <div className="flex-1 flex gap-2">
                                                 <input 
                                                     value={editInput}
                                                     onChange={e => setEditInput(e.target.value)}
-                                                    className="flex-1 bg-black/30 text-white px-2 py-1 rounded border border-white/20"
+                                                    className="flex-1 bg-black/30 text-white px-3 py-2 rounded-lg border border-white/20 outline-none focus:border-yellow-500/50"
                                                     autoFocus
                                                 />
-                                                <button onClick={() => handleUpdateNote(note.id)} className="text-emerald-400 hover:text-emerald-300"><Save className="w-4 h-4" /></button>
-                                                <button onClick={() => setEditingNoteId(null)} className="text-gray-400 hover:text-white"><X className="w-4 h-4" /></button>
+                                                <button onClick={() => handleUpdateNote(note.id)} className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30"><Check className="w-4 h-4" /></button>
+                                                <button onClick={() => setEditingNoteId(null)} className="p-2 bg-white/10 text-gray-400 rounded-lg hover:bg-white/20"><X className="w-4 h-4" /></button>
                                             </div>
                                         ) : (
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                            <>
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap font-medium">{note.content}</p>
                                                     <div className="flex gap-2 mt-2">
-                                                        <span className="text-[10px] text-gray-500">{new Date(note.createdAt).toLocaleString()}</span>
-                                                        {note.source && <span className="text-[10px] px-1.5 py-0.5 bg-white/10 rounded text-gray-400 uppercase">{note.source}</span>}
+                                                        <span className="text-[10px] text-gray-500 font-mono">{new Date(note.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                        {note.tags?.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 bg-white/10 rounded text-gray-400 uppercase">{t}</span>)}
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => { setEditingNoteId(note.id); setEditInput(note.content); }} className="text-gray-400 hover:text-white p-1"><Edit2 className="w-3 h-3" /></button>
-                                                    <button onClick={() => deleteNote(note.id)} className="text-gray-400 hover:text-red-400 p-1"><Trash2 className="w-3 h-3" /></button>
+                                                <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => { setEditingNoteId(note.id); setEditInput(note.content); }} className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg"><Edit2 className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={() => deleteNote(note.id)} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
                                                 </div>
-                                            </div>
+                                            </>
                                         )}
                                     </div>
                                 ))
@@ -215,68 +207,56 @@ export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
                 )}
 
                 {activeTool === 'library' && (
-                    <div className="flex flex-col h-full animate-fade-in">
-                        <h3 className="text-xl font-bold text-white mb-6">{isZh ? '永續術語庫 (Knowledge Graph)' : 'Sustainability Glossary'}</h3>
-                        <div className="relative mb-6">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                            <input 
-                                type="text" 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder={isZh ? "搜尋術語..." : "Search terms..."}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50"
-                            />
+                    <div className="flex flex-col h-full animate-fade-in p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white">{isZh ? '永續術語庫' : 'Glossary'}</h3>
+                            <div className="relative w-64">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                                <input 
+                                    type="text" 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder={isZh ? "搜尋..." : "Search..."}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-blue-500/50"
+                                />
+                            </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto custom-scrollbar flex-1 pr-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto custom-scrollbar flex-1">
                             {GLOSSARY.filter(g => g.term.toLowerCase().includes(searchTerm.toLowerCase())).map((item, idx) => (
-                                <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all group">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-bold text-white text-sm">{item.term}</h4>
-                                        <ArrowRight className="w-3 h-3 text-gray-600 group-hover:text-purple-400 transition-colors" />
-                                    </div>
-                                    <p className="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300">{item.def}</p>
+                                <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all group">
+                                    <h4 className="font-bold text-white text-sm mb-1 group-hover:text-blue-400 transition-colors">{item.term}</h4>
+                                    <p className="text-xs text-gray-400 leading-relaxed">{item.def}</p>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
 
+                {/* Simplified Placeholders for other tools */}
                 {activeTool === 'calendar' && (
-                    <div className="flex flex-col h-full animate-fade-in">
-                        <h3 className="text-xl font-bold text-white mb-6">{isZh ? 'ESG 萬能日曆' : 'ESG Smart Calendar'}</h3>
-                        {renderCalendar()}
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                        <div className="text-center">
+                            <CalendarIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>Calendar View</p>
+                        </div>
                     </div>
                 )}
-
                 {activeTool === 'integration' && (
-                    <div className="flex flex-col h-full animate-fade-in">
-                        <h3 className="text-xl font-bold text-white mb-6">{isZh ? '數據連接器 (Data Connectors)' : 'Data Connectors'}</h3>
-                        <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="flex flex-col h-full animate-fade-in p-6">
+                         <h3 className="text-xl font-bold text-white mb-6">{isZh ? '數據連接器' : 'Connectors'}</h3>
+                         <div className="space-y-3">
                             {INTEGRATIONS.map((app) => (
-                                <div key={app.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/20 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`p-2 rounded-lg ${app.status === 'connected' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-700/50 text-gray-400'}`}>
-                                            <Database className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-white text-sm">{app.name}</div>
-                                            <div className="text-xs text-gray-500">{app.type}</div>
-                                        </div>
+                                <div key={app.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <Database className="w-5 h-5 text-purple-400" />
+                                        <span className="font-bold text-sm text-white">{app.name}</span>
                                     </div>
-                                    <button 
-                                        onClick={() => handleConnect(app.id)}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                                            app.status === 'connected' 
-                                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-default' 
-                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
-                                        }`}
-                                    >
-                                        {app.status === 'connected' ? <Check className="w-3 h-3" /> : <LinkIcon className="w-3 h-3" />}
-                                        {app.status === 'connected' ? (isZh ? '已連接' : 'Connected') : (isZh ? '連接' : 'Connect')}
+                                    <button onClick={() => handleConnect(app.id)} className="text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white border border-white/10 transition-all">
+                                        {isZh ? '重連' : 'Reconnect'}
                                     </button>
                                 </div>
                             ))}
-                        </div>
+                         </div>
                     </div>
                 )}
             </div>

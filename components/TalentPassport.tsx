@@ -5,6 +5,7 @@ import { Language } from '../types';
 import { UserCheck, Award, Star, Fingerprint, BrainCircuit, Sparkles, GraduationCap } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
+import { useCompany } from './providers/CompanyProvider';
 
 interface TalentPassportProps {
   language: Language;
@@ -93,6 +94,7 @@ const SkillGalaxyAgent = withUniversalProxy(SkillGalaxyBase);
 
 export const TalentPassport: React.FC<TalentPassportProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
+  const { userName, userRole } = useCompany();
   const [activeTab, setActiveTab] = useState<'skills' | 'certs'>('skills');
 
   // Mock Data for Radar Chart
@@ -121,11 +123,11 @@ export const TalentPassport: React.FC<TalentPassportProps> = ({ language }) => {
         {/* Profile Card */}
         <div className="glass-panel p-6 rounded-2xl flex flex-col items-center text-center space-y-4">
             <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-celestial-emerald to-celestial-blue p-1">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=DingJun" alt="User" className="w-full h-full rounded-full border-4 border-slate-900 object-cover" />
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} alt="User" className="w-full h-full rounded-full border-4 border-slate-900 object-cover" />
             </div>
             <div>
-                <h3 className="text-xl font-bold text-white">DingJun Hong</h3>
-                <p className="text-sm text-celestial-purple">Chief Sustainability Officer</p>
+                <h3 className="text-xl font-bold text-white">{userName}</h3>
+                <p className="text-sm text-celestial-purple">{userRole}</p>
             </div>
             <div className="flex gap-2">
                 <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">Level 15</span>

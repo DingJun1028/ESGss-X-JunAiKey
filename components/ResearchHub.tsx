@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Database, BookOpen, Filter, Network, Share2, FileText, Globe, Loader2, ExternalLink, ScanLine, Upload, CheckCircle, Tag, Eye, Download, Check } from 'lucide-react';
+import { Search, Database, BookOpen, Filter, Network, Share2, FileText, Globe, Loader2, ExternalLink, ScanLine, Upload, CheckCircle, Tag, Eye, Download, Check, RefreshCw } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS, GLOBAL_SDR_MODULES } from '../constants';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useToast } from '../contexts/ToastContext';
-import { performWebSearch } from '../services/ai-service';
+import { performLocalRAG } from '../services/ai-service';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 import { universalIntelligence } from '../services/evolutionEngine';
 
@@ -90,6 +90,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
 
   // SDR State
   const [installingSdr, setInstallingSdr] = useState<string | null>(null);
+  const [isSyncingGlobal, setIsSyncingGlobal] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1200);
@@ -103,11 +104,13 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
       if(!searchQuery.trim()) return;
       setIsSearching(true);
       setSearchResults(null);
-      addToast('info', 'Searching the live web using Google Grounding...', 'Research Agent');
+      addToast('info', isZh ? '啟動 RAG 檢索增強生成引擎...' : 'Activating RAG Engine...', 'Research Agent');
       
       try {
-          const result = await performWebSearch(searchQuery, language);
+          // Use RAG instead of direct search
+          const result = await performLocalRAG(searchQuery, language);
           setSearchResults(result);
+          addToast('success', isZh ? '檢索完成 (包含本地知識庫)' : 'Retrieval Complete (Included Local Knowledge)', 'JunAiKey');
       } catch (e) {
           addToast('error', 'Search failed. Please check API Key.', 'Error');
       } finally {
@@ -145,6 +148,17 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
           setInstallingSdr(null);
           addToast('success', isZh ? `已安裝模組：${moduleName}` : `Module Installed: ${moduleName}`, 'SDR Expansion');
       }, 2000);
+  };
+
+  const handleSyncGlobal = () => {
+      setIsSyncingGlobal(true);
+      addToast('info', isZh ? '正在同步全球 ESG 開源數據庫...' : 'Syncing Global ESG Open Databases...', 'JunAiKey Link');
+      
+      setTimeout(() => {
+          universalIntelligence.syncGlobalDatabases();
+          setIsSyncingGlobal(false);
+          addToast('success', isZh ? '全球數據庫同步完成' : 'Global DB Sync Complete', 'SDR Network');
+      }, 2500);
   };
 
   return (
@@ -196,7 +210,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
                 className="px-4 py-2 bg-celestial-purple/20 hover:bg-celestial-purple/40 text-celestial-purple rounded-xl border border-celestial-purple/30 transition-all flex items-center gap-2 text-sm disabled:opacity-50"
             >
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                <span>Search</span>
+                <span>RAG Search</span>
             </button>
             </div>
         )}
@@ -204,8 +218,8 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
 
       {activeTab === 'sdr' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
-              <div className="col-span-full mb-4">
-                  <div className="p-4 bg-celestial-gold/10 border border-celestial-gold/30 rounded-xl flex items-start gap-3">
+              <div className="col-span-full mb-4 flex justify-between items-center">
+                  <div className="p-4 bg-celestial-gold/10 border border-celestial-gold/30 rounded-xl flex items-start gap-3 flex-1 mr-4">
                       <Database className="w-6 h-6 text-celestial-gold shrink-0 mt-1" />
                       <div>
                           <h3 className="font-bold text-white text-lg">{isZh ? '萬能智庫 SDR 擴充中心' : 'Universal SDR Expansion Hub'}</h3>
@@ -216,6 +230,15 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
                           </p>
                       </div>
                   </div>
+                  
+                  <button 
+                      onClick={handleSyncGlobal}
+                      disabled={isSyncingGlobal}
+                      className="px-6 py-4 bg-celestial-gold hover:bg-amber-400 text-black font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                  >
+                      {isSyncingGlobal ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+                      {isZh ? (isSyncingGlobal ? '同步中...' : '同步全球資料庫') : (isSyncingGlobal ? 'Syncing...' : 'Sync Global DB')}
+                  </button>
               </div>
 
               {GLOBAL_SDR_MODULES.map((mod) => {
@@ -260,7 +283,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
                 <div className="glass-panel p-6 rounded-2xl border border-celestial-emerald/30 bg-celestial-emerald/5 animate-fade-in">
                     <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
                         <Globe className="w-5 h-5 text-celestial-emerald" />
-                        Google Search Grounding Results
+                        RAG Enhanced Search Results
                     </h3>
                     <div className="text-sm text-gray-300 mb-4 whitespace-pre-wrap leading-relaxed">
                         {searchResults.text}

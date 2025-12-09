@@ -8,6 +8,7 @@ import { OmniEsgCell } from './OmniEsgCell';
 import { predictFutureTrends } from '../services/ai-service';
 import { useToast } from '../contexts/ToastContext';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
+import { useCompany } from './providers/CompanyProvider';
 
 interface FinanceSimProps {
   language: Language;
@@ -98,6 +99,7 @@ const MarketOracleAgent = withUniversalProxy(MarketOracleBase);
 export const FinanceSim: React.FC<FinanceSimProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
   const { addToast } = useToast();
+  const { carbonData } = useCompany(); // Get Carbon Data for link
   
   // Simulation Parameters
   const [carbonPrice, setCarbonPrice] = useState(85); // EUR
@@ -107,21 +109,27 @@ export const FinanceSim: React.FC<FinanceSimProps> = ({ language }) => {
 
   const [data, setData] = useState<any[]>([]);
 
-  // Calculate Projection (Simulated Logic)
+  // Calculate Projection (Updated with Carbon Link)
   useEffect(() => {
     const newData = [];
-    const baseRevenue = 100; // Base baseline
+    const baseRevenue = 100; // Base baseline in Millions
+    
+    // Real Carbon Burden Factor
+    const currentCarbon = (carbonData.scope1 + carbonData.scope2) / 1000; // Scale down for millions chart
     
     for (let i = 0; i <= timeHorizon; i++) {
       const year = 2024 + i;
-      // Business As Usual (BAU): Hit by carbon tax
-      const bauCost = (carbonPrice * 0.05 * i); 
+      
+      // Business As Usual (BAU): Hit by carbon tax linked to real data
+      // Use currentCarbon as base intensity
+      const carbonTaxLoad = (currentCarbon * carbonPrice * 0.05 * i); 
+      const bauCost = carbonTaxLoad; 
       const bau = baseRevenue + (i * 2) - bauCost;
 
       // Green Transition: Upfront cost, then efficiency gains + lower tax
       const investCost = i === 0 ? investment * 2 : 0; // Simplified
       const efficiencyGain = (efficiency * 0.5 * i);
-      const greenTax = (carbonPrice * 0.01 * i); // Lower emissions
+      const greenTax = (carbonTaxLoad * 0.4); // Assuming 60% reduction in tax due to transition
       const green = baseRevenue + (i * 3) + efficiencyGain - greenTax - investCost;
 
       newData.push({
@@ -131,7 +139,7 @@ export const FinanceSim: React.FC<FinanceSimProps> = ({ language }) => {
       });
     }
     setData(newData);
-  }, [carbonPrice, investment, timeHorizon, efficiency]);
+  }, [carbonPrice, investment, timeHorizon, efficiency, carbonData]);
 
   const handleAiForecast = async () => {
       addToast('info', 'AI Agent running Monte Carlo simulations...', 'Finance Bot');
@@ -158,6 +166,14 @@ export const FinanceSim: React.FC<FinanceSimProps> = ({ language }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Controls */}
         <div className="glass-panel p-6 rounded-2xl space-y-8 border border-white/5 h-full">
+            <div className="flex items-center gap-2 mb-2 p-2 bg-white/5 rounded-lg border border-white/5">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs text-gray-400">
+                    Linked to Carbon: 
+                    <span className="text-white font-bold ml-1">{(carbonData.scope1 + carbonData.scope2).toFixed(1)} tCO2e</span>
+                </span>
+            </div>
+
             <h3 className="text-lg font-semibold text-white mb-4">{isZh ? '模擬參數' : 'Parameters'}</h3>
             
             <QuantumSlider 

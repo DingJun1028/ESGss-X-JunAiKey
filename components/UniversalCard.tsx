@@ -5,7 +5,8 @@ import { Leaf, Users, Scale, Lock, Info, Shield, Sword, Box, Loader2, Star, Hexa
 import { QuantumAiTrigger } from './minimal/QuantumAiTrigger';
 import { useToast } from '../contexts/ToastContext';
 import { universalIntelligence } from '../services/evolutionEngine';
-import { generateLegoImage } from '../services/ai-service';
+import { generateLegoImage, expandTermKnowledge } from '../services/ai-service';
+import { useCompany } from './providers/CompanyProvider';
 
 interface UniversalCardProps {
   card: EsgCard;
@@ -29,6 +30,7 @@ export const UniversalCard: React.FC<UniversalCardProps> = ({
   const [isFlipped, setIsFlipped] = useState(false);
   const [legoImage, setLegoImage] = useState<string | null>(null);
   const [isGeneratingLego, setIsGeneratingLego] = useState(false);
+  const [isExpandingKnowledge, setIsExpandingKnowledge] = useState(false);
   const { addToast } = useToast();
 
   // Optical Theme Engine
@@ -61,12 +63,29 @@ export const UniversalCard: React.FC<UniversalCardProps> = ({
   const theme = getTheme(card.attribute);
   const isLegendary = card.rarity === 'Legendary';
 
-  const handleAiDeepDive = () => {
-      universalIntelligence.querySDR(card.term).then((insight) => {
-          addToast('success', `Gemini 3 Analyzed: ${card.term}`, 'Universal Intelligence');
-          onKnowledgeInteraction?.(); // Trigger mastery progress
-      });
-      addToast('info', `Connecting to SDR Knowledge Graph for ${card.term}...`, 'JunAiKey Reasoning');
+  const handleAiDeepDive = async () => {
+      if (isExpandingKnowledge) return;
+      setIsExpandingKnowledge(true);
+      
+      addToast('info', `Connecting to Universal Library for: ${card.term}...`, 'JunAiKey Reasoning');
+      
+      try {
+          // Use real Gemini 3 Pro service for structured expansion (TC Primary)
+          const insights = await expandTermKnowledge(card.term, card.definition, 'zh-TW');
+          
+          if (insights) {
+              // Ingest into the Brain
+              universalIntelligence.ingestKnowledge(card.id, card.term, insights);
+              addToast('success', `Knowledge Matrix Expanded: ${card.term}`, 'Universal Intelligence');
+              onKnowledgeInteraction?.(); // Trigger mastery progress
+          } else {
+              addToast('error', 'AI Expansion Failed', 'Error');
+          }
+      } catch (e) {
+          addToast('error', 'Connection Error', 'System');
+      } finally {
+          setIsExpandingKnowledge(false);
+      }
   };
 
   const handleLegoize = async (e: React.MouseEvent) => {
@@ -260,7 +279,14 @@ export const UniversalCard: React.FC<UniversalCardProps> = ({
                         <span className="font-mono text-[9px] text-gray-400 uppercase tracking-widest">Knowledge Node</span>
                     </div>
                     {/* Gemini 3 AI Logic Trigger */}
-                    <QuantumAiTrigger onClick={handleAiDeepDive} />
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); handleAiDeepDive(); }} 
+                        disabled={isExpandingKnowledge}
+                        className="p-1.5 rounded-lg bg-celestial-purple/20 hover:bg-celestial-purple/40 text-celestial-purple border border-celestial-purple/30 hover:shadow-[0_0_10px_rgba(168,85,247,0.4)] transition-all"
+                        title="AI Deep Dive (Expand Knowledge)"
+                    >
+                        {isExpandingKnowledge ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3" />}
+                    </button>
                 </div>
 
                 {/* Dictionary Definition */}

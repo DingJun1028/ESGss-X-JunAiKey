@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, GraduationCap, Search, Settings, Activity, Sun, Bell, Languages,
-  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home, Radio, Command, Briefcase, Stethoscope, Wrench, Crown, BookOpen, Layers, Heart, Info, Megaphone, Calendar, Lock, Code
+  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home, Radio, Command, Briefcase, Stethoscope, Wrench, Crown, BookOpen, Layers, Heart, Info, Megaphone, Calendar, Lock, Code, Database
 } from 'lucide-react';
 import { View, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -34,6 +34,40 @@ export const LogoIcon = ({ className }: { className?: string }) => (
   </div>
 );
 
+interface NavItemProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  highlight?: boolean;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ active, onClick, icon, label, highlight }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative overflow-hidden
+      ${active 
+        ? 'bg-celestial-purple text-white shadow-lg shadow-purple-500/25' 
+        : 'text-gray-400 hover:text-white hover:bg-white/5'
+      }
+      ${highlight ? 'border border-celestial-gold/30' : ''}
+    `}
+  >
+    {active && (
+      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-20" />
+    )}
+    <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
+      {icon}
+    </div>
+    <span className={`font-medium text-sm hidden lg:block ${active ? 'font-bold tracking-wide' : ''}`}>
+      {label}
+    </span>
+    {highlight && (
+        <span className="hidden lg:block absolute right-2 w-2 h-2 rounded-full bg-celestial-gold animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.8)]" />
+    )}
+  </button>
+);
+
 export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, language, onToggleLanguage, children }) => {
   const t = TRANSLATIONS[language];
   const { userName, userRole, xp, level, goodwillBalance, latestEvent, totalScore, tier } = useCompany();
@@ -42,6 +76,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   const [activeNotificationTab, setActiveNotificationTab] = useState<'alerts' | 'events' | 'news'>('alerts');
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   const currentLevelBaseXp = (level - 1) * 1000;
   const xpProgress = Math.min(100, Math.max(0, ((xp - currentLevelBaseXp) / 1000) * 100));
@@ -58,6 +93,13 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Auto-scroll to top when view changes
+  useEffect(() => {
+    if (mainRef.current) {
+        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentView]);
 
   // MECE Organization of Navigation with Card Game Promoted
   const navGroups = [
@@ -92,6 +134,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
       {
           title: language === 'zh-TW' ? '系統基石 (System)' : 'System',
           items: [
+              { id: View.UNIVERSAL_BACKEND, icon: Database, label: t.nav.universalBackend }, // New: Highest Priority System Tool
               { id: View.RESEARCH_HUB, icon: Search, label: t.nav.researchHub },
               { id: View.API_ZONE, icon: Code, label: language === 'zh-TW' ? 'API 專區' : 'API Zone' }, // New
               { id: View.SETTINGS, icon: Settings, label: t.nav.settings },
@@ -381,7 +424,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 relative custom-scrollbar">
+          <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-8 relative custom-scrollbar">
             <div className="max-w-7xl mx-auto pb-24">
                 {children}
             </div>
@@ -406,36 +449,8 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
 
       </div>
       
-      {/* AI Assistant injected into Layout to always be available */}
-      <AiAssistant language={language} onNavigate={onNavigate} />
+      {/* AI Assistant injected into Layout to always be available, now with context */}
+      <AiAssistant language={language} onNavigate={onNavigate} currentView={currentView} />
     </div>
   );
 };
-
-const NavItem: React.FC<{
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  badge?: string;
-  highlight?: boolean;
-}> = ({ active, onClick, icon, label, badge, highlight }) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative
-      ${active 
-        ? 'bg-gradient-to-r from-celestial-emerald/20 to-transparent text-white border-l-2 border-celestial-emerald' 
-        : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent'
-      }
-      ${highlight ? 'shadow-[0_0_10px_rgba(251,191,36,0.1)]' : ''}
-    `}
-  >
-    <span className={`${active ? 'text-celestial-emerald' : (highlight ? 'text-celestial-gold' : 'text-gray-400 group-hover:text-white')}`}>
-      {icon}
-    </span>
-    <span className="hidden lg:block text-sm font-medium text-left truncate flex-1">{label}</span>
-    {badge && (
-        <span className="hidden lg:block text-[9px] font-bold px-1.5 py-0.5 rounded bg-celestial-blue text-white shadow-lg animate-pulse">{badge}</span>
-    )}
-  </button>
-);

@@ -34,6 +34,7 @@ const UniversalTools = lazy(() => import('./components/UniversalTools').then(mod
 const Fundraising = lazy(() => import('./components/Fundraising').then(module => ({ default: module.Fundraising })));
 const AboutUs = lazy(() => import('./components/AboutUs').then(module => ({ default: module.AboutUs })));
 const ApiZone = lazy(() => import('./components/ApiZone').then(module => ({ default: module.ApiZone })));
+const UniversalBackend = lazy(() => import('./components/UniversalBackend').then(module => ({ default: module.UniversalBackend })));
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -78,6 +79,7 @@ const App: React.FC = () => {
                     case View.FUNDRAISING: return <Fundraising language={language} />;
                     case View.ABOUT_US: return <AboutUs language={language} />;
                     case View.API_ZONE: return <ApiZone language={language} />;
+                    case View.UNIVERSAL_BACKEND: return <UniversalBackend language={language} />;
                     case View.RESEARCH_HUB: return <ResearchHub language={language} />;
                     case View.ACADEMY: return <Academy language={language} />;
                     case View.DIAGNOSTICS: return <Diagnostics language={language} />;

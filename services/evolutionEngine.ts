@@ -240,6 +240,52 @@ class UniversalIntelligenceEngine {
       const modules = Array.from(this.sdrModules).join(', ');
       return `[JunAiKey Reasoning] Cross-referenced "${query}" against installed SDR modules (${modules || 'Core'}). Found 12 matching records in GRI 2021 and CDP 2023 datasets. Confidence: 94%.`;
   }
+
+  /**
+   * Ingest structured knowledge from Gemini 3 into the Universal Brain.
+   * Creates or updates nodes for the term and its expansion.
+   */
+  public ingestKnowledge(termId: string, term: string, data: any) {
+      // Create Central Node if not exists
+      this.registerNode(termId, { id: termId, text: term, definition: data.core }, 'Active');
+      
+      // Create Satellite Nodes for Matrix Expansion
+      if (data.regulatory) {
+          const regId = `${termId}_reg`;
+          this.registerNode(regId, { id: regId, text: '法規關聯 (Regulatory)', description: data.regulatory }, 'Mapped');
+      }
+      if (data.strategy) {
+          const stratId = `${termId}_strat`;
+          this.registerNode(stratId, { id: stratId, text: '戰略價值 (Strategy)', description: data.strategy }, 'Mapped');
+      }
+      
+      // Update Core Node Memory to reflect evolution
+      const node = this.knowledgeGraph.get(termId);
+      if (node) {
+          const newTraits = new Set(node.traits);
+          newTraits.add('learning');
+          newTraits.add('evolution');
+          node.traits = Array.from(newTraits);
+          
+          node.memory.aiInsights.push(`Deep Dive Completed: ${new Date().toISOString()}`);
+          if (data.metrics) {
+              node.memory.aiInsights.push(`KPIs: ${data.metrics.join(', ')}`);
+          }
+          
+          this.knowledgeGraph.set(termId, node);
+          this.save();
+          this.notify(node);
+      }
+  }
+
+  /**
+   * Simulate Global SDR Synchronization.
+   */
+  public syncGlobalDatabases() {
+      // Simulate syncing with CDP, GRI, IFRS
+      ['sdr-cdp', 'sdr-gri', 'sdr-ifrs'].forEach(id => this.sdrModules.add(id));
+      this.save();
+  }
 }
 
 export const universalIntelligence = new UniversalIntelligenceEngine();

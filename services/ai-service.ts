@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { Language } from '../types';
 import { universalIntelligence } from './evolutionEngine'; // Link to the Universal Brain
@@ -34,7 +33,7 @@ export const fileToGenerativePart = async (file: File): Promise<{ inlineData: { 
  * Enhanced System Prompts for specific JunAiKey Roles.
  * V2.0 Upgrade: Absolute Zero Hallucination & Phased Reasoning.
  */
-const getSystemPrompt = (language: Language, mode: 'chat' | 'analyst' | 'writer' | 'forecaster' | 'auditor' | 'strategist' = 'chat') => {
+const getSystemPrompt = (language: Language, mode: 'chat' | 'analyst' | 'writer' | 'forecaster' | 'auditor' | 'strategist' | 'teacher' | 'librarian' | 'debate_moderator' = 'chat') => {
     const baseIdentity = language === 'zh-TW' 
         ? `身份設定：您是 "ESGss X JunAiKey 善向永續系統" 的核心 AI 引擎【JunAiKey】。`
         : `Identity: You are [JunAiKey], the core AI engine for "ESGss X JunAiKey Sustainability System".`;
@@ -60,6 +59,12 @@ const getSystemPrompt = (language: Language, mode: 'chat' | 'analyst' | 'writer'
             return `${baseIdentity} Role: Strategy Architect. Task: Game Theory & ROI Analysis. ${commonRules}`;
         case 'analyst':
             return `${baseIdentity} Role: Data Forensic Scientist. Task: Root Cause Analysis. ${commonRules}`;
+        case 'teacher':
+            return `${baseIdentity} Role: ESG Educator. Task: Create engaging quizzes to test understanding. Response must be strictly JSON.`;
+        case 'librarian':
+            return `${baseIdentity} Role: Universal Knowledge Architect. Task: Structure ESG concepts into "End-to-Beginning" Matrix (以終為始矩陣). Main language: Traditional Chinese (English as auxiliary code/terms). Response must be strictly JSON.`;
+        case 'debate_moderator':
+            return `${baseIdentity} Role: Multi-Agent Simulator. Task: Simulate a conversation between a CFO (Financial Focus) and a CSO (Sustainability Focus). Return strictly JSON array of messages.`;
         case 'chat':
         default:
             return language === 'zh-TW'
@@ -320,5 +325,177 @@ export const generateLegoImage = async (cardTitle: string, cardDesc: string): Pr
     } catch (error) {
         console.error("Lego Gen Error:", error);
         return null;
+    }
+};
+
+/**
+ * Generate a Chinese Knowledge Quiz based on Card Term.
+ */
+export const generateEsgQuiz = async (
+    term: string,
+    definition: string,
+    language: Language
+): Promise<any> => {
+    if (!ai) return null;
+
+    try {
+        const systemPrompt = getSystemPrompt(language, 'teacher');
+        // Force Traditional Chinese explicitly
+        const prompt = `
+            Based on the ESG term "${term}" and definition "${definition}", generate a single multiple-choice quiz question in Traditional Chinese (繁體中文).
+            
+            Requirements:
+            1. The question should test understanding of the concept.
+            2. Provide 4 options. One is correct, three are plausible distractors.
+            3. The 'correctIndex' should be 0, 1, 2, or 3.
+            4. Provide a short explanation for why the answer is correct.
+            
+            Return raw JSON format ONLY:
+            {
+              "question": "題目 string",
+              "options": ["選項1", "選項2", "選項3", "選項4"],
+              "correctIndex": number,
+              "explanation": "解釋 string"
+            }
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json'
+            }
+        });
+
+        return JSON.parse(response.text || '{}');
+    } catch (error) {
+        console.error("Quiz Gen Error:", error);
+        return null;
+    }
+};
+
+/**
+ * Knowledge Expansion for Universal Library.
+ * Uses Gemini 3 Pro to generate deep insights in Traditional Chinese (with English terms).
+ * Logic: "End-to-Beginning Matrix" (以終為始矩陣)
+ */
+export const expandTermKnowledge = async (
+    term: string,
+    definition: string,
+    language: Language
+): Promise<any> => {
+    if (!ai) return null;
+    
+    try {
+        const systemPrompt = getSystemPrompt(language, 'librarian');
+        const prompt = `
+            針對 ESG 術語 "${term}" (定義: ${definition}) 進行深度知識擴展。
+            
+            請採用「繁中英碼」(Traditional Chinese Primary, English Code Secondary) 格式。
+            請採用「以終為始」(End-to-Beginning) 思維矩陣進行解析。
+            
+            請生成以下四個維度的詳細分析:
+            1. **核心概念 (Core Concept)**: 定義與原理。
+            2. **法規關聯 (Regulatory Relevance)**: 關聯的國際法規 (如 CSRD, IFRS, CBAM)。
+            3. **關鍵指標 (Key Metrics)**: 具體的量測數據點 (KPIs)。
+            4. **戰略價值 (Strategic Value)**: 對企業競爭力的具體效益與 ROI (The "End" Goal)。
+
+            請回傳嚴格的 JSON 格式，不要有 Markdown 標記:
+            {
+                "core": "string (詳細說明)",
+                "regulatory": "string (條列法規)",
+                "metrics": ["string", "string"],
+                "strategy": "string (效益分析)"
+            }
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview', // Using Pro for reasoning
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                thinkingConfig: { thinkingBudget: 2048 }
+            }
+        });
+
+        return JSON.parse(response.text || '{}');
+    } catch (e) {
+        console.error("Knowledge Expansion Failed", e);
+        return null;
+    }
+};
+
+// --- RAG & DEBATE EXTENSIONS (V2.0 Update) ---
+
+const KNOWLEDGE_CORPUS = [
+    { id: 'csrd', text: 'Corporate Sustainability Reporting Directive (CSRD) requires large EU companies to report on sustainability.' },
+    { id: 'cbam', text: 'Carbon Border Adjustment Mechanism (CBAM) puts a fair price on the carbon emitted during the production of carbon intensive goods that are entering the EU.' },
+    { id: 'gri', text: 'GRI Standards help organizations understand and report on their impacts on the economy, environment, and people.' },
+    { id: 'scope3', text: 'Scope 3 includes all other indirect emissions that occur in a company’s value chain.' }
+];
+
+/**
+ * Client-Side RAG Simulation.
+ * Finds relevant context from local corpus to augment the prompt.
+ */
+export const performLocalRAG = async (query: string, language: Language) => {
+    // 1. Retrieval (Simulated Vector Search via keyword match)
+    const keywords = query.toLowerCase().split(' ');
+    const relevantDocs = KNOWLEDGE_CORPUS.filter(doc => 
+        keywords.some(k => k.length > 3 && doc.text.toLowerCase().includes(k))
+    );
+    
+    const context = relevantDocs.map(d => d.text).join('\n');
+    
+    // 2. Augmentation & Generation
+    const prompt = `
+    Context from Knowledge Base:
+    ${context || "No specific internal documents found."}
+    
+    User Query: ${query}
+    
+    Answer based on the Context if available, otherwise use general knowledge.
+    `;
+    
+    return performWebSearch(prompt, language);
+};
+
+/**
+ * Generate Multi-Agent Debate.
+ */
+export const generateAgentDebate = async (
+    risk: string, 
+    language: Language
+): Promise<Array<{id: string, role: 'CSO' | 'CFO' | 'JunAiKey', text: string, timestamp: number}>> => {
+    if (!ai) throw new Error("No API Key");
+
+    const systemPrompt = getSystemPrompt(language, 'debate_moderator');
+    const prompt = `
+        Topic: ${risk}
+        Generate a debate between:
+        1. CSO (Chief Sustainability Officer): Focus on long-term risk, brand, compliance.
+        2. CFO (Chief Financial Officer): Focus on immediate cost, ROI, cash flow.
+        3. JunAiKey (AI Mediator): Provides data-driven synthesis.
+        
+        Generate 3-5 turns. 
+        Output strictly JSON array: [{ "role": "CSO", "text": "..." }, { "role": "CFO", "text": "..." }]
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: { responseMimeType: 'application/json' }
+        });
+        const arr = JSON.parse(response.text || '[]');
+        return arr.map((item: any, i: number) => ({
+            id: i.toString(),
+            role: item.role as 'CSO' | 'CFO' | 'JunAiKey',
+            text: item.text,
+            timestamp: Date.now() + i * 1000
+        }));
+    } catch (e) {
+        console.error("Debate Gen Error", e);
+        return [];
     }
 };
