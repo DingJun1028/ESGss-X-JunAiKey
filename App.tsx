@@ -30,6 +30,12 @@ const GoodwillCoin = lazy(() => import('./components/GoodwillCoin').then(module 
 const Gamification = lazy(() => import('./components/Gamification').then(module => ({ default: module.Gamification })));
 const Settings = lazy(() => import('./components/Settings').then(module => ({ default: module.Settings })));
 
+// New Modules
+const YangBoZone = lazy(() => import('./components/YangBoZone').then(module => ({ default: module.YangBoZone })));
+const BusinessIntel = lazy(() => import('./components/BusinessIntel').then(module => ({ default: module.BusinessIntel })));
+const HealthCheck = lazy(() => import('./components/HealthCheck').then(module => ({ default: module.HealthCheck })));
+const UniversalTools = lazy(() => import('./components/UniversalTools').then(module => ({ default: module.UniversalTools })));
+
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentView, setCurrentView] = useState<View>(View.MY_ESG);
@@ -83,6 +89,10 @@ const App: React.FC = () => {
               case View.GOODWILL: return <GoodwillCoin language={language} />;
               case View.GAMIFICATION: return <Gamification language={language} />;
               case View.SETTINGS: return <Settings language={language} />;
+              case View.YANG_BO: return <YangBoZone language={language} />;
+              case View.BUSINESS_INTEL: return <BusinessIntel language={language} />;
+              case View.HEALTH_CHECK: return <HealthCheck language={language} />;
+              case View.UNIVERSAL_TOOLS: return <UniversalTools language={language} />;
               default: return <MyEsg language={language} />;
             }
           })()}

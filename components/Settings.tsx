@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useCompany } from './providers/CompanyProvider';
 import { useToast } from '../contexts/ToastContext';
 import { Language } from '../types';
-import { Settings as SettingsIcon, Save, RotateCcw, User, Building, CreditCard, Globe, ShieldAlert, Cpu } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RotateCcw, User, Building, CreditCard, Globe, ShieldAlert, Cpu, PlayCircle } from 'lucide-react';
 
 interface SettingsProps {
   language: Language;
@@ -19,13 +19,12 @@ export const Settings: React.FC<SettingsProps> = ({ language }) => {
     esgScores, updateEsgScore,
     resetData,
     addAuditLog,
-    checkBadges // Import the badge checker
+    checkBadges 
   } = useCompany();
   
   const { addToast } = useToast();
   const isZh = language === 'zh-TW';
 
-  // Local state for form handling to prevent too many re-renders/saves
   const [formData, setFormData] = useState({
     companyName,
     userName,
@@ -52,19 +51,12 @@ export const Settings: React.FC<SettingsProps> = ({ language }) => {
     setBudget(formData.budget);
     setCarbonCredits(formData.carbonCredits);
     
-    // Update ESG Scores individually
     updateEsgScore('environmental', formData.envScore);
     updateEsgScore('social', formData.socScore);
     updateEsgScore('governance', formData.govScore);
     
     addAuditLog('System Configuration Update', `Modified company profile, budget ($${formData.budget}), and simulation scores.`);
     
-    // Check for badges immediately after saving (Simulated God Mode unlocks)
-    // We need a small timeout to let the state propagate in the provider, 
-    // or we can rely on the fact that updateEsgScore triggers re-renders.
-    // However, since state updates are async, the checkBadges might run before state settles.
-    // In a real app, checkBadges should be a useEffect dependent on scores.
-    // But for "God Mode" feel, we trigger it manually.
     setTimeout(() => {
         const newBadges = checkBadges();
         if(newBadges.length > 0) {
@@ -73,6 +65,11 @@ export const Settings: React.FC<SettingsProps> = ({ language }) => {
             addToast('success', isZh ? '設定已儲存並記錄於稽核軌跡' : 'Settings saved & logged to Audit Trail', 'System');
         }
     }, 100);
+  };
+
+  const handleReplayOnboarding = () => {
+      sessionStorage.removeItem('esgss_boot_sequence');
+      window.location.reload();
   };
 
   return (
@@ -238,17 +235,26 @@ export const Settings: React.FC<SettingsProps> = ({ language }) => {
                     {isZh ? '重置將清除所有本地儲存的數據，恢復為預設值。' : 'Reset will clear all local storage and revert to factory defaults.'}
                 </p>
              </div>
-             <button 
-                onClick={() => {
-                    if(confirm(isZh ? '確定要重置所有系統數據嗎？' : 'Are you sure you want to reset all system data?')) {
-                        resetData();
-                    }
-                }}
-                className="w-full py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
-             >
-                <RotateCcw className="w-4 h-4" />
-                {isZh ? '重置系統 (Factory Reset)' : 'Factory Reset'}
-             </button>
+             <div className="flex gap-4">
+                 <button 
+                    onClick={handleReplayOnboarding}
+                    className="flex-1 py-3 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                 >
+                    <PlayCircle className="w-4 h-4" />
+                    {isZh ? '重播引導動畫' : 'Replay Onboarding'}
+                 </button>
+                 <button 
+                    onClick={() => {
+                        if(confirm(isZh ? '確定要重置所有系統數據嗎？' : 'Are you sure you want to reset all system data?')) {
+                            resetData();
+                        }
+                    }}
+                    className="flex-1 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
+                 >
+                    <RotateCcw className="w-4 h-4" />
+                    {isZh ? '重置系統' : 'Factory Reset'}
+                 </button>
+             </div>
         </div>
 
       </div>

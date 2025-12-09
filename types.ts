@@ -18,7 +18,12 @@ export enum View {
   FINANCE = 'FINANCE',
   AUDIT = 'AUDIT',
   GOODWILL = 'GOODWILL',
-  GAMIFICATION = 'GAMIFICATION'
+  GAMIFICATION = 'GAMIFICATION',
+  // New Modules
+  YANG_BO = 'YANG_BO',
+  BUSINESS_INTEL = 'BUSINESS_INTEL',
+  HEALTH_CHECK = 'HEALTH_CHECK',
+  UNIVERSAL_TOOLS = 'UNIVERSAL_TOOLS'
 }
 
 export type Language = 'zh-TW' | 'en-US';
@@ -43,14 +48,32 @@ export interface AuditLogEntry {
   verified: boolean;
 }
 
+// --- ESG Universal Card Architecture (MECE) ---
+export type ESGAttribute = 'Environmental' | 'Social' | 'Governance';
+export type ESGCategory = 'Green_Ops' | 'Eco_System' | 'Human_Capital' | 'Social_Impact' | 'Foundation' | 'Partnership';
 export type CardRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
+
 export interface EsgCard {
   id: string;
-  title: string;
+  title: string;          // Name
   description: string;
+  
+  attribute: ESGAttribute;
+  category: ESGCategory;
   rarity: CardRarity;
-  imageUrl: string;
-  knowledgePoint: string;
+  
+  // The Definition Integration (Museum Label)
+  term: string;           // e.g. "SROI"
+  definition: string;     // e.g. "Social Return on Investment..."
+  
+  imageUrl?: string;      // Optional override image
+  
+  stats: {
+    defense: number;      // Compliance Score
+    offense: number;      // Value Creation Score
+  };
+  
+  isPurified?: boolean;   // Has passed the knowledge quiz
   collectionSet: string;
 }
 

@@ -252,19 +252,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
                         
                         if (widget.type === 'kpi_card') {
                             const m = liveMetrics.find(x => x.id === widget.config?.metricId) || liveMetrics[0];
-                            content = (
-                                <OmniEsgCell
-                                    id={m.id}
-                                    mode="card"
-                                    label={m.label}
-                                    value={m.value}
-                                    color={m.color}
-                                    icon={getIcon(m.color)}
-                                    traits={m.traits}
-                                    confidence="high"
-                                    onAiAnalyze={() => handleAiAnalyze(typeof m.label === 'string' ? m.label : m.label.text)}
-                                />
-                            );
+                            
+                            if (m) {
+                                content = (
+                                    <OmniEsgCell
+                                        id={m.id}
+                                        mode="card"
+                                        label={m.label}
+                                        value={m.value}
+                                        color={m.color}
+                                        icon={getIcon(m.color)}
+                                        traits={m.traits}
+                                        confidence="high"
+                                        onAiAnalyze={() => handleAiAnalyze(typeof m.label === 'string' ? m.label : m.label.text)}
+                                    />
+                                );
+                            } else {
+                                content = <div className="p-4 text-xs text-gray-500 flex items-center justify-center border border-white/5 rounded-xl h-full">Metric Unavailable</div>;
+                            }
                         } else if (widget.type === 'chart_area') {
                             content = (
                                 <div className="glass-panel p-6 rounded-2xl h-full border-white/5 flex flex-col">

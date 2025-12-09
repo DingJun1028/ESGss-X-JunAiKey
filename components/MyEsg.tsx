@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   CheckSquare, Calendar, Newspaper, Star, Crown, Users, ArrowRight, Sparkles, 
   ListTodo, Plus, Clock, ShieldCheck, Upload, Loader2, Image as ImageIcon, Trash2,
-  Bot, TrendingUp, AlertTriangle, Zap, CheckCircle, Target
+  Bot, TrendingUp, AlertTriangle, Zap, CheckCircle, Target, Radio
 } from 'lucide-react';
 import { Language, Quest, QuestRarity } from '../types';
 import { useCompany } from './providers/CompanyProvider';
@@ -230,11 +230,13 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
       setActiveQuestId(null);
   };
 
-  // --- Other Mock Data ---
-  const news = [
-    { id: 1, title: 'EU CBAM Regulation Updates', date: '2h ago', tag: 'Policy' },
-    { id: 2, title: 'Global Renewables Report 2024', date: '5h ago', tag: 'Market' },
+  // --- Mock Data ---
+  const intelligence = [
+      { id: 1, type: 'podcast', title: isZh ? '楊博的 ESG 創價實驗室 EP.24' : "Yang Bo's ESG Lab EP.24", meta: '15 min' },
+      { id: 2, type: 'course', title: isZh ? '最新課程：供應鏈碳管理' : 'New Course: Supply Chain Carbon', meta: 'Academy' },
+      { id: 3, type: 'news', title: isZh ? '歐盟碳邊境稅最新動態' : 'EU CBAM Latest Updates', meta: '2h ago' }
   ];
+
   const calendarItems = [
     { id: 1, title: 'Net Zero Summit', time: '09:00 AM', type: 'Event', date: 25 },
     { id: 2, title: 'ESG Committee Mtg', time: '02:00 PM', type: 'Meeting', date: 25 },
@@ -396,7 +398,37 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                 />
             </div>
 
-            {/* 2. My To-Do (Personal Utility) (1 col) */}
+            {/* 2. Latest Intelligence (New) (1 col) */}
+            <div className="glass-panel p-6 rounded-2xl border-white/10 flex flex-col">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Radio className="w-5 h-5 text-red-400 animate-pulse" />
+                        {isZh ? '最新情報' : 'Latest Intel'}
+                    </h3>
+                </div>
+                
+                <div className="flex-1 space-y-3">
+                    {intelligence.map(item => (
+                        <div key={item.id} className="p-3 bg-white/5 rounded-xl border border-white/5 hover:border-celestial-purple/30 transition-all cursor-pointer group">
+                            <div className="flex justify-between items-start mb-1">
+                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                                    item.type === 'podcast' ? 'bg-purple-500/20 text-purple-300' :
+                                    item.type === 'course' ? 'bg-blue-500/20 text-blue-300' :
+                                    'bg-gray-500/20 text-gray-300'
+                                }`}>
+                                    {item.type}
+                                </span>
+                                <span className="text-[10px] text-gray-500">{item.meta}</span>
+                            </div>
+                            <h4 className="text-sm font-medium text-white group-hover:text-celestial-purple transition-colors leading-snug">
+                                {item.title}
+                            </h4>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* 3. My To-Do (1 col) */}
             <div className="glass-panel p-6 rounded-2xl border-white/10 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -442,25 +474,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                         <Plus className="w-3 h-3" />
                     </button>
                 </form>
-            </div>
-
-            {/* 3. Latest News (1 col) */}
-            <div className="glass-panel p-6 rounded-2xl border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <Newspaper className="w-5 h-5 text-slate-300" />
-                    {isZh ? '最新消息' : 'Latest News'}
-                </h3>
-                <div className="space-y-4">
-                    {news.map(item => (
-                        <div key={item.id} className="border-l-2 border-white/20 pl-3 group hover:border-celestial-emerald transition-colors">
-                            <h4 className="text-sm font-medium text-white group-hover:text-celestial-emerald cursor-pointer transition-colors line-clamp-2">{item.title}</h4>
-                            <div className="flex gap-2 mt-1 text-[10px] text-gray-500">
-                                <span>{item.date}</span>
-                                <span className="px-1.5 py-0.5 rounded bg-white/10 text-gray-300">{item.tag}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
             </div>
 
             {/* --- Row 2: Featured Content --- */}

@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, GraduationCap, Search, Settings, Activity, Sun, Bell, Languages,
-  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home, Radio, Command
+  Target, UserCheck, Leaf, FileText, Network, Bot, Calculator, ShieldCheck, Coins, Trophy, X, Zap, Star, Home, Radio, Command, Briefcase, Stethoscope, Wrench, Crown
 } from 'lucide-react';
 import { View, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -18,26 +19,13 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const LogoIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#fbbf24" /> {/* Gold */}
-        <stop offset="50%" stopColor="#10b981" /> {/* Emerald */}
-        <stop offset="100%" stopColor="#fbbf24" /> {/* Gold */}
-      </linearGradient>
-    </defs>
-    <path 
-      d="M25 30 C25 15 45 15 50 30 C55 45 75 45 75 30 C75 15 55 15 50 30 C45 45 25 45 25 30 Z" 
-      stroke="url(#logoGradient)" 
-      strokeWidth="8" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-    />
-    <circle cx="50" cy="30" r="11" fill="#10b981" stroke="#020617" strokeWidth="2" />
-    <path d="M50 19 Q43 30 50 41 Q57 30 50 19" stroke="white" strokeWidth="1.5" strokeOpacity="0.6" fill="none" />
-    <path d="M39 30 H61" stroke="white" strokeWidth="1.5" strokeOpacity="0.6" />
-  </svg>
+// Updated to use the real image file as requested.
+export const LogoIcon = ({ className }: { className?: string }) => (
+  <img 
+    src="https://thumbs4.imagebam.com/7f/89/20/ME18KXN8_t.png" 
+    alt="ESGss Logo" 
+    className={`object-contain ${className}`}
+  />
 );
 
 export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, language, onToggleLanguage, children }) => {
@@ -61,6 +49,21 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const navItems = [
+      { id: View.MY_ESG, icon: Home, label: t.nav.myEsg },
+      { id: View.DASHBOARD, icon: LayoutDashboard, label: t.nav.dashboard },
+      { id: View.YANG_BO, icon: Crown, label: t.nav.yangBo },
+      { id: View.BUSINESS_INTEL, icon: Briefcase, label: t.nav.businessIntel },
+      { id: View.HEALTH_CHECK, icon: Stethoscope, label: t.nav.healthCheck },
+      { id: View.RESEARCH_HUB, icon: Search, label: t.nav.researchHub },
+      { id: View.ACADEMY, icon: GraduationCap, label: t.nav.academy },
+      { id: View.CARBON, icon: Leaf, label: t.nav.carbon },
+      { id: View.REPORT, icon: FileText, label: t.nav.report },
+      { id: View.INTEGRATION, icon: Network, label: t.nav.integration },
+      { id: View.UNIVERSAL_TOOLS, icon: Wrench, label: t.nav.universalTools },
+      { id: View.GOODWILL, icon: Coins, label: t.nav.goodwill },
+  ];
 
   return (
     <div className={`min-h-screen bg-celestial-900 text-gray-200 relative overflow-hidden font-sans selection:bg-celestial-emerald/30 transition-colors duration-1000 ${isCritical ? 'border-4 border-red-500/20' : ''}`}>
@@ -100,32 +103,57 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
       <div className="relative z-10 flex h-screen">
         
         <aside className="w-20 lg:w-64 hidden md:flex flex-col border-r border-white/5 bg-slate-900/50 backdrop-blur-xl shrink-0">
-          <div className="h-20 shrink-0 flex items-center justify-center lg:justify-start lg:px-6 border-b border-white/5 gap-3">
-            <LogoIcon className="w-10 h-10 shrink-0 filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)] hover:scale-110 transition-transform duration-300" />
-            <span className="font-bold text-xl text-white hidden lg:block tracking-tight">ESGss<span className="font-light text-gray-400"> X JunAiKey</span></span>
+          {/* Immersive Sidebar Branding */}
+          <div className="h-28 shrink-0 flex items-center justify-center lg:justify-start lg:px-6 border-b border-white/5 gap-3 relative overflow-hidden group">
+            {/* Ambient Glow Behind Logo */}
+            <div className="absolute top-1/2 left-8 w-12 h-12 bg-celestial-gold/20 blur-[20px] rounded-full pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-1/2 left-4 w-16 h-16 bg-celestial-emerald/10 blur-[30px] rounded-full pointer-events-none opacity-30 group-hover:opacity-80 transition-opacity duration-500" />
+
+            <div className="relative z-10">
+               <LogoIcon className="w-12 h-12 shrink-0 filter drop-shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:scale-110 transition-transform duration-500" />
+            </div>
+            
+            <div className="flex flex-col relative z-10 hidden lg:flex">
+                <span className="font-bold text-2xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-gray-400">
+                  ESGss
+                </span>
+                <span className="font-bold text-[10px] text-celestial-emerald tracking-[0.2em] uppercase glow-text-emerald">
+                  JunAiKey
+                </span>
+            </div>
           </div>
 
           <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
-            <div className="text-[10px] uppercase text-gray-500 px-4 mb-2 hidden lg:block font-semibold tracking-wider">Core</div>
+            <div className="text-[10px] uppercase text-gray-500 px-4 mb-2 hidden lg:block font-semibold tracking-wider">Strategy & Intel</div>
             <NavItem active={currentView === View.MY_ESG} onClick={() => onNavigate(View.MY_ESG)} icon={<Home className="w-5 h-5" />} label={t.nav.myEsg} />
-            <NavItem active={currentView === View.DASHBOARD} onClick={() => onNavigate(View.DASHBOARD)} icon={<LayoutDashboard className="w-5 h-5" />} label={t.nav.dashboard} />
-            <NavItem active={currentView === View.RESEARCH_HUB} onClick={() => onNavigate(View.RESEARCH_HUB)} icon={<Search className="w-5 h-5" />} label={t.nav.researchHub} />
-            <NavItem active={currentView === View.ACADEMY} onClick={() => onNavigate(View.ACADEMY)} icon={<GraduationCap className="w-5 h-5" />} label={t.nav.academy} />
-            <NavItem active={currentView === View.DIAGNOSTICS} onClick={() => onNavigate(View.DIAGNOSTICS)} icon={<Activity className="w-5 h-5" />} label={t.nav.diagnostics} />
-
-            <div className="text-[10px] uppercase text-gray-500 px-4 mt-6 mb-2 hidden lg:block font-semibold tracking-wider">Management</div>
+            <NavItem active={currentView === View.YANG_BO} onClick={() => onNavigate(View.YANG_BO)} icon={<Crown className="w-5 h-5 text-celestial-gold" />} label={t.nav.yangBo} />
+            <NavItem 
+                active={currentView === View.BUSINESS_INTEL} 
+                onClick={() => onNavigate(View.BUSINESS_INTEL)} 
+                icon={<Briefcase className="w-5 h-5 text-celestial-blue" />} 
+                label={t.nav.businessIntel}
+                badge="NEW"
+            />
+            <NavItem active={currentView === View.HEALTH_CHECK} onClick={() => onNavigate(View.HEALTH_CHECK)} icon={<Stethoscope className="w-5 h-5" />} label={t.nav.healthCheck} />
             <NavItem active={currentView === View.STRATEGY} onClick={() => onNavigate(View.STRATEGY)} icon={<Target className="w-5 h-5" />} label={t.nav.strategy} />
+
+            <div className="text-[10px] uppercase text-gray-500 px-4 mt-6 mb-2 hidden lg:block font-semibold tracking-wider">Core Ops</div>
+            <NavItem active={currentView === View.DASHBOARD} onClick={() => onNavigate(View.DASHBOARD)} icon={<LayoutDashboard className="w-5 h-5" />} label={t.nav.dashboard} />
             <NavItem active={currentView === View.CARBON} onClick={() => onNavigate(View.CARBON)} icon={<Leaf className="w-5 h-5" />} label={t.nav.carbon} />
-            <NavItem active={currentView === View.TALENT} onClick={() => onNavigate(View.TALENT)} icon={<UserCheck className="w-5 h-5" />} label={t.nav.talent} />
             <NavItem active={currentView === View.REPORT} onClick={() => onNavigate(View.REPORT)} icon={<FileText className="w-5 h-5" />} label={t.nav.report} />
+            <NavItem active={currentView === View.INTEGRATION} onClick={() => onNavigate(View.INTEGRATION)} icon={<Network className="w-5 h-5" />} label={t.nav.integration} />
+            <NavItem active={currentView === View.UNIVERSAL_TOOLS} onClick={() => onNavigate(View.UNIVERSAL_TOOLS)} icon={<Wrench className="w-5 h-5" />} label={t.nav.universalTools} />
 
             <div className="text-[10px] uppercase text-gray-500 px-4 mt-6 mb-2 hidden lg:block font-semibold tracking-wider">Growth</div>
-            <NavItem active={currentView === View.INTEGRATION} onClick={() => onNavigate(View.INTEGRATION)} icon={<Network className="w-5 h-5" />} label={t.nav.integration} />
+            <NavItem active={currentView === View.RESEARCH_HUB} onClick={() => onNavigate(View.RESEARCH_HUB)} icon={<Search className="w-5 h-5" />} label={t.nav.researchHub} />
+            <NavItem active={currentView === View.ACADEMY} onClick={() => onNavigate(View.ACADEMY)} icon={<GraduationCap className="w-5 h-5" />} label={t.nav.academy} />
+            <NavItem active={currentView === View.TALENT} onClick={() => onNavigate(View.TALENT)} icon={<UserCheck className="w-5 h-5" />} label={t.nav.talent} />
             <NavItem active={currentView === View.CULTURE} onClick={() => onNavigate(View.CULTURE)} icon={<Bot className="w-5 h-5" />} label={t.nav.culture} />
             <NavItem active={currentView === View.FINANCE} onClick={() => onNavigate(View.FINANCE)} icon={<Calculator className="w-5 h-5" />} label={t.nav.finance} />
             <NavItem active={currentView === View.AUDIT} onClick={() => onNavigate(View.AUDIT)} icon={<ShieldCheck className="w-5 h-5" />} label={t.nav.audit} />
             <NavItem active={currentView === View.GOODWILL} onClick={() => onNavigate(View.GOODWILL)} icon={<Coins className="w-5 h-5" />} label={t.nav.goodwill} />
             <NavItem active={currentView === View.GAMIFICATION} onClick={() => onNavigate(View.GAMIFICATION)} icon={<Trophy className="w-5 h-5" />} label={t.nav.gamification} />
+            <NavItem active={currentView === View.DIAGNOSTICS} onClick={() => onNavigate(View.DIAGNOSTICS)} icon={<Activity className="w-5 h-5" />} label={t.nav.diagnostics} />
           </nav>
 
           <div className="shrink-0 p-4 border-t border-white/5">
@@ -141,9 +169,11 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-slate-900/30 backdrop-blur-sm shrink-0 relative z-30">
             <div className="flex items-center gap-4 flex-1">
-                <div className="md:hidden flex items-center gap-2">
-                     <div className="w-10 h-10 flex items-center justify-center">
-                        <LogoIcon className="w-full h-full" />
+                <div className="md:hidden flex items-center gap-2 relative">
+                     {/* Mobile Header Glow */}
+                     <div className="absolute inset-0 bg-celestial-gold/20 blur-xl rounded-full pointer-events-none" />
+                     <div className="w-10 h-10 flex items-center justify-center relative z-10">
+                        <LogoIcon className="w-full h-full drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]" />
                      </div>
                 </div>
                 
@@ -261,11 +291,20 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
           </main>
         </div>
 
-        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center px-2 z-40">
-            <button onClick={() => onNavigate(View.MY_ESG)} className={`p-2 rounded-lg ${currentView === View.MY_ESG ? 'text-celestial-emerald' : 'text-gray-500'}`}><Home className="w-6 h-6"/></button>
-            <button onClick={() => onNavigate(View.DASHBOARD)} className={`p-2 rounded-lg ${currentView === View.DASHBOARD ? 'text-celestial-emerald' : 'text-gray-500'}`}><LayoutDashboard className="w-6 h-6"/></button>
-            <button onClick={() => onNavigate(View.CARBON)} className={`p-2 rounded-lg ${currentView === View.CARBON ? 'text-celestial-emerald' : 'text-gray-500'}`}><Leaf className="w-6 h-6"/></button>
-            <button onClick={() => onNavigate(View.ACADEMY)} className={`p-2 rounded-lg ${currentView === View.ACADEMY ? 'text-celestial-emerald' : 'text-gray-500'}`}><GraduationCap className="w-6 h-6"/></button>
+        {/* Improved Mobile Navigation: Horizontal Scroll */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-t border-white/10 z-40">
+            <div className="flex items-center overflow-x-auto h-full px-4 gap-6 no-scrollbar snap-x">
+                {navItems.map(item => (
+                    <button 
+                        key={item.id} 
+                        onClick={() => onNavigate(item.id)}
+                        className={`flex flex-col items-center justify-center min-w-[3rem] snap-center ${currentView === item.id ? 'text-celestial-emerald' : 'text-gray-500'}`}
+                    >
+                        <item.icon className="w-6 h-6 mb-1" />
+                        <span className="text-[9px] whitespace-nowrap">{item.label.split(' ')[0]}</span>
+                    </button>
+                ))}
+            </div>
         </div>
 
       </div>
@@ -273,10 +312,10 @@ export const Layout: React.FC<LayoutProps> = ({ currentView, onNavigate, languag
   );
 };
 
-const NavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
+const NavItem = ({ active, onClick, icon, label, badge }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, badge?: string }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative
       ${active 
         ? 'bg-gradient-to-r from-celestial-emerald/20 to-transparent text-white border-l-2 border-celestial-emerald' 
         : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent'
@@ -285,6 +324,9 @@ const NavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: (
     <span className={`${active ? 'text-celestial-emerald' : 'text-gray-400 group-hover:text-white'}`}>
       {icon}
     </span>
-    <span className="hidden lg:block text-sm font-medium text-left truncate">{label}</span>
+    <span className="hidden lg:block text-sm font-medium text-left truncate flex-1">{label}</span>
+    {badge && (
+        <span className="hidden lg:block text-[9px] font-bold px-1.5 py-0.5 rounded bg-celestial-blue text-white shadow-lg animate-pulse">{badge}</span>
+    )}
   </button>
 );

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
-import { Network, Database, Server, Wifi, RefreshCw, CheckCircle, Activity, Loader2, Zap } from 'lucide-react';
+import { Network, Database, Server, Wifi, RefreshCw, CheckCircle, Activity, Loader2, Zap, Calendar, Box, Layers } from 'lucide-react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useToast } from '../contexts/ToastContext';
 import { useCompany } from './providers/CompanyProvider';
@@ -19,11 +19,12 @@ interface PipelineNodeProps extends InjectedProxyProps {
     id: string;
     pipe: any;
     index: number;
+    total: number;
     isRefreshing: boolean;
 }
 
 const PipelineNodeBase: React.FC<PipelineNodeProps> = ({ 
-    pipe, index, isRefreshing, adaptiveTraits, trackInteraction, isAgentActive 
+    pipe, index, total, isRefreshing, adaptiveTraits, trackInteraction, isAgentActive 
 }) => {
     // Agent Traits
     const isStressed = pipe.status === 'warning';
@@ -48,7 +49,7 @@ const PipelineNodeBase: React.FC<PipelineNodeProps> = ({
             style={{
                 top: '50%',
                 left: '50%',
-                transform: `translate(-50%, -50%) rotate(${index * 90}deg) translate(140px) rotate(-${index * 90}deg)`
+                transform: `translate(-50%, -50%) rotate(${index * (360/total)}deg) translate(140px) rotate(-${index * (360/total)}deg)`
             }}
             onClick={() => trackInteraction?.('click')}
         >
@@ -56,6 +57,8 @@ const PipelineNodeBase: React.FC<PipelineNodeProps> = ({
             {pipe.type === 'Wifi' && <Wifi className="w-6 h-6 text-purple-400" />}
             {pipe.type === 'Database' && <Database className="w-6 h-6 text-amber-400" />}
             {pipe.type === 'Network' && <Network className="w-6 h-6 text-blue-400" />}
+            {pipe.type === 'Calendar' && <Calendar className="w-6 h-6 text-pink-400" />}
+            {pipe.type === 'App' && <Box className="w-6 h-6 text-cyan-400" />}
             
             {/* Connection Line (Axon) */}
             <div 
@@ -63,7 +66,7 @@ const PipelineNodeBase: React.FC<PipelineNodeProps> = ({
             style={{
                 top: '50%',
                 left: '50%',
-                transform: `rotate(${index * 90 + 180}deg) translate(30px)`,
+                transform: `rotate(${index * (360/total) + 180}deg) translate(30px)`,
                 width: '110px'
             }}
             />
@@ -79,10 +82,10 @@ const PipelineNodeBase: React.FC<PipelineNodeProps> = ({
                 />
             )}
 
-            {/* Agent Thought Bubble */}
-            {isLearning && (
-                <div className="absolute -top-2 -right-2 w-3 h-3 bg-celestial-purple rounded-full border border-slate-900 animate-bounce" />
-            )}
+            {/* Label Tooltip */}
+            <div className="absolute top-full mt-2 text-[9px] text-gray-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded">
+                {pipe.name}
+            </div>
         </div>
     );
 };
@@ -132,10 +135,12 @@ export const IntegrationHub: React.FC<IntegrationHubProps> = ({ language }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [pipelines, setPipelines] = useState([
-    { id: 'pipe-1', name: 'SAP ERP Connector', status: 'active', latency: '45ms', throughput: '1.2 GB/h', type: 'Database' },
-    { id: 'pipe-2', name: 'Siemens IoT Gateway', status: 'active', latency: '12ms', throughput: '500 MB/h', type: 'Wifi' },
-    { id: 'pipe-3', name: 'Salesforce CRM', status: 'warning', latency: '250ms', throughput: '150 MB/h', type: 'Server' },
-    { id: 'pipe-4', name: 'Scope 3 API (Ext)', status: 'active', latency: '80ms', throughput: '50 MB/h', type: 'Network' },
+    { id: 'pipe-1', name: 'Blue CC (ERP)', status: 'active', latency: '45ms', throughput: '1.2 GB/h', type: 'Database' },
+    { id: 'pipe-2', name: 'Siemens IoT', status: 'active', latency: '12ms', throughput: '500 MB/h', type: 'Wifi' },
+    { id: 'pipe-3', name: 'Google Calendar', status: 'active', latency: '200ms', throughput: 'Sync', type: 'Calendar' },
+    { id: 'pipe-4', name: 'Scope 3 API', status: 'active', latency: '80ms', throughput: '50 MB/h', type: 'Network' },
+    { id: 'pipe-5', name: 'Flowlu CRM', status: 'warning', latency: '350ms', throughput: 'Check', type: 'App' },
+    { id: 'pipe-6', name: 'Apple iCloud', status: 'active', latency: '60ms', throughput: 'Sync', type: 'Calendar' },
   ]);
 
   const handleRefresh = () => {
@@ -151,10 +156,10 @@ export const IntegrationHub: React.FC<IntegrationHubProps> = ({ language }) => {
       setTimeout(() => {
           setIsRefreshing(false);
           setPipelines(prev => prev.map(p => 
-              p.id === 'pipe-3' ? { ...p, status: 'active', latency: '45ms' } : p
+              p.id === 'pipe-5' ? { ...p, status: 'active', latency: '45ms' } : p
           ));
           addAuditLog('System Integration', 'Manual ETL Synchronization Triggered. All pipelines healthy.');
-          addToast('success', isZh ? '同步完成。Salesforce CRM 延遲已優化。' : 'Sync Complete. Salesforce CRM latency optimized.', 'System');
+          addToast('success', isZh ? '同步完成。Flowlu 連接已修復。' : 'Sync Complete. Flowlu connection fixed.', 'System');
       }, 2000);
   };
 
@@ -166,7 +171,7 @@ export const IntegrationHub: React.FC<IntegrationHubProps> = ({ language }) => {
              {isZh ? '集成中樞' : 'Integration Hub'}
              <Network className="w-6 h-6 text-celestial-blue" />
           </h2>
-          <p className="text-gray-400">{isZh ? '神經網絡數據管線監控' : 'Neural Network Data Pipeline Monitoring'}</p>
+          <p className="text-gray-400">{isZh ? '整合 Blue CC, Flowlu, Google/Apple Calendar' : 'Unifying Blue CC, Flowlu, Google/Apple Calendar'}</p>
         </div>
         <button 
             onClick={handleRefresh}
@@ -199,6 +204,7 @@ export const IntegrationHub: React.FC<IntegrationHubProps> = ({ language }) => {
                       label={pipe.name}
                       pipe={pipe}
                       index={i}
+                      total={pipelines.length}
                       isRefreshing={isRefreshing}
                   />
               ))}
@@ -206,7 +212,7 @@ export const IntegrationHub: React.FC<IntegrationHubProps> = ({ language }) => {
 
           {/* Pipeline List */}
           <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-4">{isZh ? '管線健康度' : 'Pipeline Health'}</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">{isZh ? '連接狀態' : 'Connection Status'}</h3>
               {pipelines.map((pipe) => (
                   <OmniEsgCell 
                     key={pipe.id}
@@ -216,7 +222,7 @@ export const IntegrationHub: React.FC<IntegrationHubProps> = ({ language }) => {
                     value={pipe.status === 'active' ? 'Running' : 'Warning'}
                     subValue={`Latency: ${pipe.latency} • ${pipe.throughput}`}
                     color={pipe.status === 'active' ? 'emerald' : 'gold'}
-                    icon={pipe.type === 'Wifi' ? Wifi : pipe.type === 'Database' ? Database : Server}
+                    icon={pipe.type === 'Wifi' ? Wifi : pipe.type === 'Database' ? Database : pipe.type === 'Calendar' ? Calendar : Server}
                     confidence={pipe.status === 'active' ? 'high' : 'medium'}
                     verified={true}
                     traits={pipe.status === 'active' ? ['seamless', 'bridging'] : ['gap-filling']}
@@ -230,7 +236,7 @@ export const IntegrationHub: React.FC<IntegrationHubProps> = ({ language }) => {
                   <div>
                       <h4 className="text-sm font-bold text-white mb-1">{isZh ? '系統神經反射報告' : 'Neural Reflex Report'}</h4>
                       <p className="text-xs text-gray-400 leading-relaxed">
-                          {isZh ? '自動修復協定已啟動。檢測到 CRM 節點壓力過大，已動態重新分配頻寬。' : 'Auto-healing protocol engaged. Detected CRM node stress; bandwidth dynamically reallocated.'}
+                          {isZh ? '集成中心運行穩定。Flowlu API 偶發延遲，已列入觀察名單。' : 'Integration Hub stable. Flowlu API showing sporadic latency, added to watch list.'}
                       </p>
                   </div>
               </div>

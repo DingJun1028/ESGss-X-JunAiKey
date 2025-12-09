@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Sun, Lock, User, ShieldCheck, ToggleLeft, ToggleRight, ArrowRight } from 'lucide-react';
+import { Lock, User, ShieldCheck, ToggleLeft, ToggleRight, ArrowRight } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { LogoIcon } from './Layout';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -49,17 +50,28 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
       </div>
 
       <div className="relative z-10 w-full max-w-md p-8">
-        <div className="glass-panel p-8 rounded-3xl border-t border-white/20 shadow-2xl shadow-celestial-purple/20">
+        <div className="glass-panel p-8 rounded-3xl border-t border-white/20 shadow-2xl shadow-celestial-purple/20 backdrop-blur-xl bg-slate-900/40">
           
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-celestial-emerald to-celestial-purple flex items-center justify-center shadow-lg shadow-celestial-emerald/30 mb-4 animate-float">
-               <Sun className="w-8 h-8 text-white" />
+            {/* Immersive Logo Area */}
+            <div className="relative w-32 h-32 mb-6 animate-float">
+               {/* Ambient Glow Layers */}
+               <div className="absolute inset-0 bg-celestial-gold/30 blur-[50px] rounded-full opacity-60" />
+               <div className="absolute inset-0 bg-celestial-emerald/20 blur-[30px] rounded-full translate-x-2 translate-y-2 opacity-50" />
+               
+               {/* Logo with Depth */}
+               <div className="relative z-10 w-full h-full drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] filter brightness-110">
+                  <LogoIcon className="w-full h-full" />
+               </div>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight text-center flex flex-col gap-1">
+
+            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight text-center flex flex-col gap-1 drop-shadow-lg">
               <span>ESGss</span>
-              <span className="text-xl text-celestial-emerald tracking-wider">善向永續</span>
+              <span className="text-xl text-transparent bg-clip-text bg-gradient-to-r from-celestial-emerald to-celestial-gold tracking-widest font-medium">
+                善向永續
+              </span>
             </h1>
-            <p className="text-xs text-celestial-gold mt-3 uppercase tracking-widest text-center border-t border-white/10 pt-3 w-full">
+            <p className="text-[10px] text-celestial-purple/80 mt-4 uppercase tracking-[0.2em] text-center border-t border-white/5 pt-4 w-full font-bold">
               Powered by JunAiKey
             </p>
           </div>
@@ -74,7 +86,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={isZh ? "企業信箱" : "Enterprise Email"}
-                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-celestial-emerald/50 focus:ring-1 focus:ring-celestial-emerald/50 transition-all"
+                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-celestial-emerald/50 focus:ring-1 focus:ring-celestial-emerald/50 transition-all hover:bg-slate-950/70"
                     required
                   />
                 </div>
@@ -85,7 +97,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={isZh ? "密碼" : "Password"}
-                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-celestial-purple/50 focus:ring-1 focus:ring-celestial-purple/50 transition-all"
+                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-celestial-purple/50 focus:ring-1 focus:ring-celestial-purple/50 transition-all hover:bg-slate-950/70"
                     required
                   />
                 </div>
@@ -109,8 +121,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-celestial-emerald to-celestial-purple text-white font-semibold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-celestial-emerald to-celestial-purple text-white font-semibold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden group"
             >
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
@@ -123,14 +136,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, language }) =
           </form>
 
           <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-            <span className="text-xs text-gray-500">
-              {isZh ? "安全連接: Supabase Auth" : "Secured by Supabase Auth"}
+            <span className="text-xs text-gray-500 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              {isZh ? "萬能智庫 已連結" : "Universal Intelligence Connected"}
             </span>
             <button 
               onClick={toggleDevMode}
-              className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors group"
             >
-              {isDevMode ? <ToggleRight className="w-8 h-8 text-celestial-emerald" /> : <ToggleLeft className="w-8 h-8" />}
+              {isDevMode ? <ToggleRight className="w-8 h-8 text-celestial-emerald" /> : <ToggleLeft className="w-8 h-8 group-hover:text-gray-300" />}
               <span>DevMode</span>
             </button>
           </div>

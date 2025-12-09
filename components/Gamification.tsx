@@ -1,338 +1,174 @@
-import React, { useState, useEffect } from 'react';
-import { Language } from '../types';
-import { Trophy, Medal, Star, Flame, Leaf, Lock, Search, ShieldCheck, Database, Coins, Award, Sprout, Trees, Zap } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Language, ESGCategory } from '../types';
+import { Trophy, Trees, LayoutGrid, Leaf, Users, Scale, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 import { useCompany } from './providers/CompanyProvider';
 import { ESG_CARDS } from '../constants';
-import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
-import { universalIntelligence } from '../services/evolutionEngine';
+import { UniversalCard } from './UniversalCard';
+import { useToast } from '../contexts/ToastContext';
 
 interface GamificationProps {
   language: Language;
 }
 
-// ----------------------------------------------------------------------
-// Agent: Living Tree (The Bio-Indicator)
-// ----------------------------------------------------------------------
-interface TreeProps extends InjectedProxyProps {
-    index: number;
-}
-
-const TreeBase: React.FC<TreeProps> = ({ index, adaptiveTraits, isAgentActive }) => {
-    // Agent Logic: Use Universal Intelligence events as "Sunlight"
-    const [sway, setSway] = useState(0);
-    
-    // Only subscribe to brain events if it's one of the first few trees to save listeners
-    useEffect(() => {
-        if (index > 20) return; // Optimization: Only first 20 trees react to wind
-        const unsubscribe = universalIntelligence.subscribeGlobal((node) => {
-            if (Math.random() > 0.7) { 
-                setSway(Math.random() * 10 - 5);
-                setTimeout(() => setSway(0), 1000);
-            }
-        });
-        return () => unsubscribe();
-    }, [index]);
-
-    const type = index % 3; // 0: Pine, 1: Round, 2: Bushy
-    const size = 0.8 + (index % 5) * 0.1;
-    const delay = (index % 10) * 0.1;
-    
-    const isEvolved = adaptiveTraits?.includes('evolution'); 
-    
-    return (
-        <div 
-          className="flex flex-col items-center justify-end relative group animate-[fadeIn_0.5s_ease-out_forwards]"
-          style={{ 
-              height: `${40 + (index % 40)}px`, 
-              animationDelay: `${delay}s`,
-              opacity: 0,
-              transform: `scale(${size}) rotate(${sway}deg)`,
-              transition: 'transform 1s ease-in-out'
-          }}
-        >
-            <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 bg-black/80 text-white text-[9px] px-2 py-1 rounded transition-opacity pointer-events-none whitespace-nowrap z-10 border border-white/20">
-                Tree #{index + 1} • {(index+1)*500} XP
-            </div>
-            
-            {isAgentActive && (
-                <div className="absolute -top-4 opacity-50 animate-bounce">
-                    <Zap className="w-2 h-2 text-yellow-400 fill-current" />
-                </div>
-            )}
-
-            <svg viewBox="0 0 100 100" className="w-12 h-12 overflow-visible">
-                {type === 0 && (
-                    <path d="M50,10 L20,80 H80 Z M50,80 V100" fill={isEvolved ? "#34d399" : "#10b981"} stroke="#065f46" strokeWidth="2" />
-                )}
-                {type === 1 && (
-                    <>
-                      <circle cx="50" cy="40" r="30" fill={isEvolved ? "#6ee7b7" : "#34d399"} stroke="#059669" strokeWidth="2" />
-                      <path d="M50,70 V100" stroke="#78350f" strokeWidth="4" />
-                    </>
-                )}
-                {type === 2 && (
-                    <>
-                      <path d="M50,100 L50,60" stroke="#78350f" strokeWidth="4" />
-                      <circle cx="35" cy="50" r="20" fill="#059669" />
-                      <circle cx="65" cy="50" r="20" fill="#059669" />
-                      <circle cx="50" cy="30" r="25" fill="#10b981" />
-                    </>
-                )}
-            </svg>
-        </div>
-    );
-};
-
-const LivingTreeAgent = withUniversalProxy(TreeBase);
-
-
-// ----------------------------------------------------------------------
-// Main Component
-// ----------------------------------------------------------------------
+type SortOption = 'RARITY' | 'NAME' | 'DEFENSE' | 'OFFENSE';
+type SortDirection = 'asc' | 'desc';
 
 export const Gamification: React.FC<GamificationProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
-  const { xp, level, collectedCards, badges } = useCompany();
-  const [activeTab, setActiveTab] = useState<'overview' | 'garden'>('overview');
-
-  // Calculate number of trees (1 tree per 500 XP)
-  const treeCount = Math.floor(xp / 500);
-  const gardenLevel = Math.floor(treeCount / 10) + 1;
+  const { level, collectedCards } = useCompany();
+  const { addToast } = useToast();
+  const [filterCategory, setFilterCategory] = useState<ESGCategory | 'ALL'>('ALL');
   
-  // Optimization: Volume Reduction. Limit visible trees to 50 max.
-  const MAX_VISIBLE_TREES = 50;
-  const visibleTrees = Math.min(treeCount, MAX_VISIBLE_TREES);
-  const hiddenTrees = Math.max(0, treeCount - MAX_VISIBLE_TREES);
+  // Sorting State
+  const [sortOption, setSortOption] = useState<SortOption>('RARITY');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const leaders = [
-    { name: 'DingJun Hong', score: xp, dept: 'ESG Office', isMe: true }, 
-    { name: 'Sarah Chen', score: 1100, dept: 'Marketing', isMe: false },
-    { name: 'Mike Ross', score: 980, dept: 'Legal', isMe: false },
+  const categories = [
+      { id: 'ALL', label: 'All', icon: LayoutGrid },
+      { id: 'Green_Ops', label: 'E-1 Green Ops', icon: Leaf, color: 'text-[#00FF9D]' },
+      { id: 'Eco_System', label: 'E-2 Ecosystem', icon: Trees, color: 'text-[#00FF9D]' },
+      { id: 'Human_Capital', label: 'S-1 Human Cap', icon: Users, color: 'text-[#00F0FF]' },
+      { id: 'Social_Impact', label: 'S-2 Impact', icon: Users, color: 'text-[#00F0FF]' },
+      { id: 'Foundation', label: 'G-1 Governance', icon: Scale, color: 'text-[#FFD700]' },
+      { id: 'Partnership', label: 'G-2 Partner', icon: Scale, color: 'text-[#FFD700]' },
   ];
 
-  const getRarityColor = (rarity: string) => {
-      switch(rarity) {
-          case 'Legendary': return 'border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)] bg-gradient-to-b from-amber-500/20 to-transparent';
-          case 'Epic': return 'border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)] bg-gradient-to-b from-purple-500/20 to-transparent';
-          case 'Rare': return 'border-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.3)] bg-gradient-to-b from-blue-500/20 to-transparent';
-          default: return 'border-gray-600 bg-white/5';
+  // Helper for rarity weight
+  const getRarityWeight = (r: string) => {
+      switch(r) {
+          case 'Legendary': return 4;
+          case 'Epic': return 3;
+          case 'Rare': return 2;
+          case 'Common': return 1;
+          default: return 0;
       }
   };
 
-  const getBadgeIcon = (iconName: string) => {
-      switch(iconName) {
-          case 'Leaf': return Leaf;
-          case 'Database': return Database;
-          case 'Award': return Award;
-          case 'ShieldCheck': return ShieldCheck;
-          case 'Coins': return Coins;
-          default: return Star;
+  // Filter Cards
+  const filteredCards = ESG_CARDS.filter(card => 
+      filterCategory === 'ALL' ? true : card.category === filterCategory
+  );
+
+  // Sort Cards
+  const sortedCards = [...filteredCards].sort((a, b) => {
+      let comparison = 0;
+      switch (sortOption) {
+          case 'RARITY':
+              comparison = getRarityWeight(a.rarity) - getRarityWeight(b.rarity);
+              break;
+          case 'NAME':
+              comparison = a.title.localeCompare(b.title);
+              break;
+          case 'DEFENSE':
+              comparison = a.stats.defense - b.stats.defense;
+              break;
+          case 'OFFENSE':
+              comparison = a.stats.offense - b.stats.offense;
+              break;
       }
-  };
+      return sortDirection === 'asc' ? comparison : -comparison;
+  });
 
   return (
     <div className="space-y-8 animate-fade-in pb-24">
+       {/* Header */}
        <div className="flex flex-col md:flex-row justify-between items-end gap-4">
             <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-orange-500/20 text-white">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-lg shadow-purple-500/20 text-white">
                     <Trophy className="w-8 h-8" />
                 </div>
                 <div>
-                    <h2 className="text-3xl font-bold text-white">{isZh ? '遊戲化成長 & 收藏' : 'Gamification & Collection'}</h2>
-                    <p className="text-gray-400">{isZh ? '排行榜、成就與 ESG 知識卡片' : 'Leaderboards, Achievements & ESG Knowledge Cards'}</p>
+                    <h2 className="text-3xl font-bold text-white">{isZh ? 'ESG 萬能卡牌聖庫' : 'Universal ESG Repository'}</h2>
+                    <p className="text-gray-400">{isZh ? '將無形的影響力，鑄造為有形的數位資產' : 'Forging intangible impact into tangible digital assets'}</p>
                 </div>
             </div>
             
-            <div className="flex bg-slate-900/50 p-1 rounded-xl border border-white/10 backdrop-blur-md">
-                <button 
-                    onClick={() => setActiveTab('overview')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-celestial-gold text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                >
-                    <Trophy className="w-4 h-4" />
-                    {isZh ? '概覽' : 'Overview'}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('garden')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'garden' ? 'bg-celestial-emerald text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                >
-                    <Trees className="w-4 h-4" />
-                    {isZh ? '影響力花園' : 'Impact Garden'}
-                </button>
-            </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white/5 px-4 py-3 rounded-xl border border-white/10 flex flex-col items-center">
-                <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Level</div>
-                <div className="text-2xl font-bold text-white">{level}</div>
-            </div>
-            <div className="bg-white/5 px-4 py-3 rounded-xl border border-white/10 flex flex-col items-center">
-                <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Total XP</div>
-                <div className="text-2xl font-bold text-celestial-emerald">{xp.toLocaleString()}</div>
-            </div>
-            <div className="bg-white/5 px-4 py-3 rounded-xl border border-white/10 flex flex-col items-center">
-                <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Badges</div>
-                <div className="text-2xl font-bold text-celestial-gold">{badges.filter(b => b.isUnlocked).length}/{badges.length}</div>
-            </div>
-        </div>
-
-        {activeTab === 'garden' ? (
-            <div className="glass-panel p-8 rounded-3xl border border-celestial-emerald/30 relative overflow-hidden min-h-[500px] flex flex-col bg-gradient-to-b from-sky-900/20 to-emerald-900/20">
-                <div className="absolute top-10 right-10 w-24 h-24 bg-celestial-gold rounded-full blur-2xl opacity-20 animate-pulse" />
-                
-                <div className="relative z-10 flex justify-between items-start mb-8">
-                    <div>
-                        <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                            <Sprout className="w-6 h-6 text-emerald-400" />
-                            {isZh ? '我的數位森林' : 'My Digital Forest'}
-                        </h3>
-                        <p className="text-gray-300 text-sm mt-1">
-                            {isZh 
-                                ? `您已種植 ${treeCount} 棵樹 (每 500 XP = 1 棵樹)。花園等級：${gardenLevel}` 
-                                : `You have planted ${treeCount} trees (1 tree per 500 XP). Garden Level: ${gardenLevel}`}
-                        </p>
-                    </div>
-                    <div className="px-3 py-1 bg-black/40 rounded-full border border-white/10 text-xs text-emerald-400 font-mono">
-                        Carbon Offset: {(treeCount * 0.02).toFixed(2)} tCO2e (Est)
-                    </div>
+            {/* Stats */}
+            <div className="flex gap-4">
+                <div className="text-right">
+                    <div className="text-xs text-gray-500 uppercase tracking-wider">Level</div>
+                    <div className="text-xl font-bold text-white font-mono">{level}</div>
                 </div>
+                <div className="text-right border-l border-white/10 pl-4">
+                    <div className="text-xs text-gray-500 uppercase tracking-wider">Collection</div>
+                    <div className="text-xl font-bold text-celestial-gold font-mono">{collectedCards.length}/{ESG_CARDS.length}</div>
+                </div>
+            </div>
+        </div>
 
-                <div className="flex-1 flex flex-wrap content-end gap-4 pb-8 border-b-8 border-emerald-900/50">
-                    {treeCount === 0 && (
-                        <div className="w-full text-center text-gray-500 py-12">
-                            {isZh ? '尚未種植樹木。獲得 XP 來開始綠化！' : 'No trees yet. Earn XP to start greening!'}
-                        </div>
-                    )}
-                    
-                    {Array.from({ length: visibleTrees }).map((_, i) => (
-                        <LivingTreeAgent 
-                            key={i} 
-                            id={`tree-${i}`} 
-                            label={`Tree ${i}`} 
-                            index={i} 
+        {/* Controls Toolbar */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+            {/* Tab Navigation */}
+            <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar w-full sm:w-auto">
+                {categories.map(cat => (
+                    <button
+                        key={cat.id}
+                        onClick={() => setFilterCategory(cat.id as any)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border whitespace-nowrap
+                            ${filterCategory === cat.id 
+                                ? 'bg-white/10 border-white/30 text-white' 
+                                : 'bg-transparent border-white/5 text-gray-500 hover:text-white hover:bg-white/5'}
+                        `}
+                    >
+                        <cat.icon className={`w-3 h-3 ${cat.color || 'text-white'}`} />
+                        {cat.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-lg border border-white/10 backdrop-blur-sm shrink-0">
+                <span className="text-[10px] text-gray-500 font-bold px-2 uppercase">Sort By</span>
+                <select 
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value as SortOption)}
+                    className="bg-transparent text-xs text-gray-300 font-medium outline-none px-2 py-1.5 cursor-pointer hover:text-white [&>option]:bg-slate-900"
+                >
+                    <option value="RARITY">{isZh ? '稀有度 (Rarity)' : 'Rarity'}</option>
+                    <option value="NAME">{isZh ? '名稱 (Name)' : 'Name'}</option>
+                    <option value="DEFENSE">{isZh ? '防禦值 (Defense)' : 'Defense Score'}</option>
+                    <option value="OFFENSE">{isZh ? '創價值 (Offense)' : 'Offense Score'}</option>
+                </select>
+                <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                <button 
+                    onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+                    title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                >
+                    {sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                </button>
+            </div>
+        </div>
+
+        {/* Card Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center">
+            {sortedCards.map((card) => {
+                const isUnlocked = collectedCards.includes(card.id) || card.rarity === 'Legendary'; // Force unlock Legendary for demo
+                return (
+                    <div key={card.id} className="animate-fade-in">
+                        <UniversalCard 
+                            card={card} 
+                            isLocked={!isUnlocked} 
+                            onClick={() => {
+                                if (!isUnlocked) {
+                                    addToast('error', 'Card Locked. Complete quests to unlock.', 'System');
+                                } else if (!card.isPurified) {
+                                    addToast('info', 'Knowledge Quiz Initiated...', 'Purification Ritual');
+                                }
+                            }}
                         />
-                    ))}
+                    </div>
+                );
+            })}
+        </div>
 
-                    {/* Optimization: Virtual placeholder for excessive trees */}
-                    {hiddenTrees > 0 && (
-                        <div className="flex flex-col items-center justify-end h-[80px]">
-                            <div className="w-16 h-16 rounded-full bg-emerald-900/50 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold animate-pulse">
-                                +{hiddenTrees}
-                            </div>
-                            <span className="text-[10px] text-emerald-500/70 mt-1">More Trees</span>
-                        </div>
-                    )}
-                </div>
+        {/* Empty State */}
+        {sortedCards.length === 0 && (
+            <div className="h-64 flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-white/10 rounded-3xl">
+                <Filter className="w-12 h-12 mb-4 opacity-20" />
+                <p>No cards found in this category.</p>
             </div>
-        ) : (
-            <>
-                <div className="glass-panel p-6 rounded-2xl border border-white/10">
-                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                        <Medal className="w-5 h-5 text-celestial-gold" />
-                        {isZh ? '成就徽章' : 'Achievement Badges'}
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {badges.map(badge => {
-                            const Icon = getBadgeIcon(badge.icon);
-                            return (
-                                <div key={badge.id} className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${badge.isUnlocked ? 'bg-white/10 border-celestial-gold/50 shadow-[0_0_15px_rgba(251,191,36,0.1)]' : 'bg-white/5 border-white/5 opacity-50 grayscale'}`}>
-                                    <div className={`p-3 rounded-full mb-3 ${badge.isUnlocked ? 'bg-celestial-gold/20 text-celestial-gold' : 'bg-gray-700 text-gray-500'}`}>
-                                        <Icon className="w-6 h-6" />
-                                    </div>
-                                    <div className="font-bold text-sm text-white mb-1">{badge.name}</div>
-                                    <div className="text-[10px] text-gray-400 leading-tight">{badge.description}</div>
-                                    {!badge.isUnlocked && <Lock className="w-3 h-3 text-gray-600 mt-2" />}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-1 glass-panel p-6 rounded-2xl bg-gradient-to-b from-white/5 to-transparent border border-white/10 h-fit">
-                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                            <Flame className="w-5 h-5 text-orange-500" />
-                            {isZh ? '本月排行榜' : 'Monthly Leaderboard'}
-                        </h3>
-                        <div className="space-y-4">
-                            {leaders.sort((a,b) => b.score - a.score).map((user, i) => (
-                                <div key={i} className={`flex items-center gap-4 p-3 rounded-xl border relative overflow-hidden transition-all ${user.isMe ? 'bg-celestial-purple/20 border-celestial-purple/50' : 'bg-slate-900/50 border-white/5'}`}>
-                                    {i === 0 && <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-transparent pointer-events-none" />}
-                                    <div className={`w-8 h-8 flex items-center justify-center font-bold rounded-full ${i===0?'bg-amber-400 text-black shadow-lg shadow-amber-500/50':i===1?'bg-gray-400 text-black':'bg-orange-700 text-white'}`}>
-                                        {i+1}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="font-bold text-white flex items-center gap-2">
-                                            {user.name}
-                                            {user.isMe && <span className="text-[10px] px-1.5 py-0.5 bg-white/20 rounded text-gray-200">YOU</span>}
-                                        </div>
-                                        <div className="text-xs text-gray-500">{user.dept}</div>
-                                    </div>
-                                    <div className="font-mono text-celestial-gold font-bold">{user.score}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Star className="w-5 h-5 text-celestial-gold" />
-                                {isZh ? '知識卡片收藏冊' : 'Knowledge Card Binder'}
-                            </h3>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                <input type="text" placeholder="Search cards..." className="bg-white/5 border border-white/10 rounded-full pl-9 pr-4 py-1.5 text-xs text-white focus:outline-none focus:border-white/30" />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {ESG_CARDS.map((card) => {
-                                const isUnlocked = collectedCards.includes(card.id);
-                                return (
-                                    <div 
-                                        key={card.id} 
-                                        className={`
-                                            relative aspect-[3/4] rounded-xl border-2 transition-all duration-500 group perspective-1000
-                                            ${isUnlocked ? getRarityColor(card.rarity) : 'border-white/5 bg-slate-900/80 grayscale opacity-60'}
-                                            ${isUnlocked ? 'hover:-translate-y-2 hover:shadow-2xl hover:rotate-1' : ''}
-                                        `}
-                                    >
-                                        {isUnlocked ? (
-                                            <div className="absolute inset-0 flex flex-col p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className={`w-2 h-2 rounded-full ${card.rarity === 'Legendary' ? 'bg-amber-400 animate-pulse' : card.rarity === 'Epic' ? 'bg-purple-400' : 'bg-blue-400'}`} />
-                                                    <span className="text-[9px] uppercase font-bold tracking-wider opacity-70">{card.rarity}</span>
-                                                </div>
-                                                
-                                                <div className="flex-1 bg-black/20 rounded-lg mb-3 overflow-hidden border border-white/5 relative group-hover:border-white/20 transition-colors">
-                                                    <img src={card.imageUrl} alt={card.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                                                </div>
-
-                                                <div className="space-y-1">
-                                                    <h4 className="text-xs font-bold text-white leading-tight">{card.title}</h4>
-                                                    <p className="text-[9px] text-gray-400 line-clamp-2">{card.description}</p>
-                                                </div>
-
-                                                <div className="absolute inset-0 bg-slate-900/95 p-4 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-center items-center text-center backdrop-blur-xl z-20 pointer-events-none">
-                                                    <span className="text-xs font-bold text-celestial-gold mb-2">Did you know?</span>
-                                                    <p className="text-xs text-gray-200">{card.knowledgePoint}</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                                                <Lock className="w-8 h-8 text-gray-600 mb-2" />
-                                                <span className="text-xs font-bold text-gray-600">Locked</span>
-                                                <span className="text-[9px] text-gray-700 mt-1">Found in {card.collectionSet} Packs</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            </>
         )}
     </div>
   );
