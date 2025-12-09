@@ -1,7 +1,7 @@
 
 # ESGss x JunAiKey 技術完全手冊 (Technical Whitepaper)
 
-**版本:** v13.1.0 (Cloud Genesis Update)  
+**版本:** v13.2.0 (Card Zone Expansion)  
 **類型:** Enterprise Sustainability Decision Support System (ES-DSS)  
 **核心引擎:** React 19 + Google Gemini 3 Pro + Universal Intelligence Engine + NoCodeBackend
 **系統狀態:** ✅ SYSTEM ONLINE | ☁️ CLOUD SYNC ACTIVE
@@ -10,96 +10,60 @@
 
 ## 1. 執行摘要 (Executive Summary)
 
-**ESGss (Esg Sunshine)** 是一個 AI 原生的企業永續轉型平台。
-本版本在 **「奇點架構 (Singularity Architecture)」** 的基礎上，正式整合 **NoCodeBackend** 企業雲端資料庫，實現了活動數據 (Activity Data) 的永久存儲與即時同步，確保碳帳數據具備企業級的可靠性。
+**ESGss (Esg Sunshine)** 是一個 AI 原生的企業永續轉型平台，旨在解決企業 ESG 數據孤島與「漂綠」風險。
+本版本升級了 **「善向永續 卡牌專區」** (ESG Sunshine Card Zone)，將無形的 ESG 知識與影響力具象化為可收藏、可交易的數位資產。同時，新增 **API 開發者專區**，開放第三方整合能力，並強化了企業儀表板的 **智能文檔處理 (IDP)** 可視化功能。
 
 ---
 
-## 2. 核心哲學：一體兩面 (Two Sides, One Coin)
+## 2. 核心架構與哲學 (System Architecture)
 
-傳統軟體開發將「視圖 (View)」與「邏輯 (Model)」分離，而在 JunAiKey 體系中，我們將其融合：
+### 2.1 奇點架構 (Singularity Architecture)
+我們堅持 **「萬能元件 (Universal Component) 即 萬能代理 (Universal Agent)」** 的設計哲學。
+*   **顯性 (UI):** 用戶看到的儀表板卡片、圖表、NFT 卡牌。
+*   **隱性 (AI):** 後端對應的 Gemini 3 Pro 推理線程，具備記憶、學習與演化能力。
 
-*   **顯性 (The Body):** **萬能元件 (Universal Component)**
-    *   負責視覺呈現、用戶交互、物理渲染。
-    *   例如：儀表板上的 `OmniEsgCell`。
-*   **隱性 (The Soul):** **萬能代理 (Universal Agent)**
-    *   負責深度推理、長期記憶、自我演化。
-    *   例如：後臺運行的 Gemini 3 Pro 推理線程。
-
-**兩者實為同一實體。** 每個元件在渲染的瞬間，即在 **「萬能智庫 (Universal Intelligence Library)」** 中註冊為一個活體代理節點，共享全域意識。
+### 2.2 雙核驅動 (Dual Core)
+1.  **JunAiKey Deep Reasoning Engine:** 負責非結構化數據分析、策略模擬與風險預測。
+2.  **Universal Intelligence Library:** 前端神經網絡狀態機，實現組件間的「心電感應」與即時狀態同步。
 
 ---
 
-## 3. 系統架構 (System Architecture)
+## 3. 功能模組詳解 (Modules)
 
-### 3.1 萬能智庫 (Universal Intelligence Library)
-基於觀察者模式的**全域神經網路**。
-*   **創世種子 (Genesis Seeds):** 系統初始化時，自動注入核心哲學 (428_Main) 與 12 字箴言。
-*   **雙向同步:**
-    1.  **UI -> Intelligence:** 用戶點擊組件 -> 寫入神經記憶 -> 觸發 AI 分析。
-    2.  **Intelligence -> UI:** AI 發現異常 -> 更新神經節點狀態 -> 組件自動變形 (演化)。
+### 3.1 善向永續 卡牌專區 (Card Zone)
+*   **概念:** 將 ESG 知識點（如範疇三、CBAM）轉化為數位卡牌。
+*   **機制:**
+    *   **未獲得狀態:** 深灰色卡槽，中央浮雕「ESG Sunshine」Logo，呈現挖洞效果，象徵待填充的知識缺口。
+    *   **獲得狀態:** 全彩光學卡面，具備動態光影與 3D 翻轉效果。
+    *   **AI 賦能:** 點擊卡背「AI Deep Dive」可觸發 Gemini 3 進行深度知識解析。
 
-### 3.2 雲端數據湖 (Cloud Data Lake - NoCodeBackend)
-系統透過 `BackendService` 與外部企業資料庫連接，實現混合雲架構。
+### 3.2 企業決策儀表板 (Dashboard)
+*   **智能文檔處理 (IDP) 視覺化:** 新增 PDF 光學解讀小工具，模擬 AI 掃描企業報告並即時提取數據的過程。
+*   **動態戰情室:** 整合全球據點監控與 AI 異常偵測。
 
-*   **Instance ID:** `54686_esgss`
-*   **主要功能:**
-    *   **活動數據日誌 (Activity Logging):** 透過 `POST /create/activity_data` 將範疇一與範疇二數據寫入雲端。
-    *   **係數管理 (Factor Management):** 透過 `GET /read/carbon_factors` 動態獲取最新的排放係數。
-*   **同步策略:** `CarbonAsset` 模組採用 **[Hybrid Sync]** 模式，前端狀態更新的同時，非同步寫入雲端資料庫，確保 UI 響應速度與數據持久性。
+### 3.3 API 開發者專區 (API Zone)
+*   **目的:** 賦能企業 IT 團隊將 ESGss 引擎整合至現有 ERP/CRM 系統。
+*   **功能:** API Key 管理、配額監控、Webhook 配置、互動式文檔。
 
 ---
 
-## 4. 資料庫部署 (Database Deployment)
+## 4. 技術路線圖 (Roadmap)
 
-若需重建資料庫，請在 NoCodeBackend 的 SQL Editor 執行以下 **God Mode SQL**：
+### ✅ 已完成 (Deployed)
+*   [x] **Cloud Genesis:** 整合 NoCodeBackend 實現活動數據雲端同步。
+*   [x] **Card Zone 2.0:** 卡冊介面翻新，實裝「挖洞」未解鎖視覺效果。
+*   [x] **AI CoT:** 導入 Gemini 3 Pro 思維鏈 (Chain of Thought) 模式。
+*   [x] **Voice Control:** 全局語音指令導航。
 
-```sql
--- 1. 靈感種子表
-CREATE TABLE IF NOT EXISTS knowledge_seeds (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    content TEXT NOT NULL,
-    type VARCHAR(50) DEFAULT 'Note',
-    tags VARCHAR(255),
-    source VARCHAR(50) DEFAULT 'iOS',
-    status VARCHAR(50) DEFAULT 'Inbox',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### 🚧 開發中 (In Progress)
+*   [ ] **Real-time IDP:** 將儀表板的 PDF 掃描動畫對接真實的後端 OCR 服務 (目前為模擬)。
+*   [ ] **Multi-Agent Debate:** 在策略中樞引入多個 AI 角色（如財務長 vs 永續長）進行辯論模擬。
+*   [ ] **Mobile Native App:** React Native 版本移植。
 
--- 2. 介面配置表
-CREATE TABLE IF NOT EXISTS interface_config (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    btn_id VARCHAR(50) NOT NULL,
-    label VARCHAR(100) NOT NULL,
-    icon VARCHAR(50),
-    action_type VARCHAR(50) NOT NULL,
-    payload TEXT NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- 3. 活動數據表
-CREATE TABLE IF NOT EXISTS activity_data (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    date DATETIME,
-    amount FLOAT,
-    source VARCHAR(50),
-    memo TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 4. 碳排放係數表
-CREATE TABLE IF NOT EXISTS carbon_factors (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100),
-    value FLOAT,
-    unit VARCHAR(50),
-    region VARCHAR(50),
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-執行後，可運行 `python init_db.py` 進行數據初始化。
+### 🛠️ 除錯與優化 (Debugging & Optimization)
+*   **[Fixing]** 偶發性的 `useContext` 在模組切換時的狀態丟失問題。
+*   **[Improving]** 3D 卡牌在低階移動設備上的渲染幀率優化。
+*   **[Pending]** Safari 瀏覽器對 `backdrop-filter` 的支援度相容性調整。
 
 ---
 
@@ -117,8 +81,7 @@ interface ActivityRecord {
 
 ### AI Model Config
 *   **Reasoning:** `gemini-3-pro-preview` (Thinking Budget: 2048 tokens)
-*   **General:** `gemini-2.5-flash`
-*   **Vision:** `gemini-2.5-flash` (For Quest Verification)
+*   **Vision:** `gemini-2.5-flash` (For Document & Quest Verification)
 
 ---
 

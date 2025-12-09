@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Database, BookOpen, Filter, Network, Share2, FileText, Globe, Loader2, ExternalLink, ScanLine, Upload, CheckCircle, Tag, Eye } from 'lucide-react';
+import { Search, Database, BookOpen, Filter, Network, Share2, FileText, Globe, Loader2, ExternalLink, ScanLine, Upload, CheckCircle, Tag, Eye, Download, Check } from 'lucide-react';
 import { Language } from '../types';
-import { TRANSLATIONS } from '../constants';
+import { TRANSLATIONS, GLOBAL_SDR_MODULES } from '../constants';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useToast } from '../contexts/ToastContext';
 import { performWebSearch } from '../services/ai-service';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
+import { universalIntelligence } from '../services/evolutionEngine';
 
 interface ResearchHubProps {
   language: Language;
@@ -71,8 +72,9 @@ const ConceptAgent = withUniversalProxy(ConceptNodeBase);
 
 export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
   const t = TRANSLATIONS[language].research;
+  const isZh = language === 'zh-TW';
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'explorer' | 'scanner'>('explorer');
+  const [activeTab, setActiveTab] = useState<'explorer' | 'scanner' | 'sdr'>('explorer');
   
   // Explorer State
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -85,6 +87,9 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedFiles, setScannedFiles] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // SDR State
+  const [installingSdr, setInstallingSdr] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1200);
@@ -133,6 +138,15 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
       }
   };
 
+  const handleInstallSDR = (moduleId: string, moduleName: string) => {
+      setInstallingSdr(moduleId);
+      setTimeout(() => {
+          universalIntelligence.installSDRModule(moduleId);
+          setInstallingSdr(null);
+          addToast('success', isZh ? `已安裝模組：${moduleName}` : `Module Installed: ${moduleName}`, 'SDR Expansion');
+      }, 2000);
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
        {/* Header */}
@@ -152,6 +166,13 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
               >
                   <ScanLine className="w-4 h-4" />
                   {language === 'zh-TW' ? 'AI 文檔掃描 (OCR)' : 'AI Document Scanner'}
+              </button>
+              <button 
+                onClick={() => setActiveTab('sdr')}
+                className={`pb-2 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'sdr' ? 'text-celestial-gold border-b-2 border-celestial-gold' : 'text-gray-400 hover:text-white'}`}
+              >
+                  <Database className="w-4 h-4" />
+                  {language === 'zh-TW' ? 'SDR 全球數據庫' : 'SDR Global DB'}
               </button>
           </div>
         </div>
@@ -181,7 +202,58 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
         )}
       </div>
 
-      {activeTab === 'explorer' ? (
+      {activeTab === 'sdr' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
+              <div className="col-span-full mb-4">
+                  <div className="p-4 bg-celestial-gold/10 border border-celestial-gold/30 rounded-xl flex items-start gap-3">
+                      <Database className="w-6 h-6 text-celestial-gold shrink-0 mt-1" />
+                      <div>
+                          <h3 className="font-bold text-white text-lg">{isZh ? '萬能智庫 SDR 擴充中心' : 'Universal SDR Expansion Hub'}</h3>
+                          <p className="text-sm text-gray-400">
+                              {isZh 
+                                ? '安裝全球 ESG 開源資料庫模組，讓 JunAiKey 具備更強大的數據驗證與交叉比對能力。' 
+                                : 'Install global ESG open-source database modules to empower JunAiKey with stronger verification and cross-referencing capabilities.'}
+                          </p>
+                      </div>
+                  </div>
+              </div>
+
+              {GLOBAL_SDR_MODULES.map((mod) => {
+                  const isInstalled = universalIntelligence.isSDRInstalled(mod.id);
+                  const isInstalling = installingSdr === mod.id;
+
+                  return (
+                      <div key={mod.id} className="glass-panel p-6 rounded-2xl border border-white/10 flex flex-col justify-between group hover:border-celestial-gold/30 transition-all">
+                          <div>
+                              <div className="flex justify-between items-start mb-4">
+                                  <div className="p-3 bg-white/5 rounded-xl group-hover:bg-celestial-gold/20 transition-colors">
+                                      <Database className="w-6 h-6 text-gray-300 group-hover:text-celestial-gold" />
+                                  </div>
+                                  {isInstalled && <CheckCircle className="w-5 h-5 text-emerald-400" />}
+                              </div>
+                              <h4 className="font-bold text-white mb-2">{mod.name}</h4>
+                              <p className="text-xs text-gray-400 leading-relaxed mb-4">{mod.description}</p>
+                          </div>
+                          
+                          <button 
+                              onClick={() => !isInstalled && handleInstallSDR(mod.id, mod.name)}
+                              disabled={isInstalled || isInstalling}
+                              className={`w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all
+                                  ${isInstalled 
+                                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default' 
+                                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'}
+                              `}
+                          >
+                              {isInstalling ? <Loader2 className="w-3 h-3 animate-spin" /> : (isInstalled ? <Check className="w-3 h-3" /> : <Download className="w-3 h-3" />)}
+                              {isInstalled ? (isZh ? '已安裝' : 'Installed') : (isInstalling ? (isZh ? '安裝中...' : 'Installing...') : (isZh ? '安裝模組' : 'Install Module'))}
+                          </button>
+                      </div>
+                  );
+              })}
+          </div>
+      )}
+
+      {activeTab === 'explorer' && (
           <>
             {/* Search Results Area */}
             {searchResults && (
@@ -352,7 +424,9 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ language }) => {
                 </div>
             </div>
           </>
-      ) : (
+      )}
+
+      {activeTab === 'scanner' && (
           /* Scanner View */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
               <div className="glass-panel p-8 rounded-2xl border-dashed border-2 border-white/20 flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => fileInputRef.current?.click()}>

@@ -5,6 +5,7 @@
 export enum View {
   MY_ESG = 'MY_ESG', 
   DASHBOARD = 'DASHBOARD',
+  CARD_GAME = 'CARD_GAME', // Renamed/Promoted from GAMIFICATION
   RESEARCH_HUB = 'RESEARCH_HUB', 
   ACADEMY = 'ACADEMY', 
   DIAGNOSTICS = 'DIAGNOSTICS', 
@@ -18,15 +19,25 @@ export enum View {
   FINANCE = 'FINANCE',
   AUDIT = 'AUDIT',
   GOODWILL = 'GOODWILL',
-  GAMIFICATION = 'GAMIFICATION',
-  // New Modules
   YANG_BO = 'YANG_BO',
   BUSINESS_INTEL = 'BUSINESS_INTEL',
   HEALTH_CHECK = 'HEALTH_CHECK',
-  UNIVERSAL_TOOLS = 'UNIVERSAL_TOOLS'
+  UNIVERSAL_TOOLS = 'UNIVERSAL_TOOLS',
+  FUNDRAISING = 'FUNDRAISING', // New
+  ABOUT_US = 'ABOUT_US',        // New
+  API_ZONE = 'API_ZONE'         // New: API Developer Portal
 }
 
 export type Language = 'zh-TW' | 'en-US';
+export type UserTier = 'Free' | 'Pro' | 'Enterprise';
+
+export interface UserProfile {
+  name: string;
+  role: string;
+  tier: UserTier;
+  avatarSeed: string;
+}
+
 export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'reward';
 
 export interface Toast {
@@ -52,6 +63,7 @@ export interface AuditLogEntry {
 export type ESGAttribute = 'Environmental' | 'Social' | 'Governance';
 export type ESGCategory = 'Green_Ops' | 'Eco_System' | 'Human_Capital' | 'Social_Impact' | 'Foundation' | 'Partnership';
 export type CardRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
+export type MasteryLevel = 'Novice' | 'Apprentice' | 'Master';
 
 export interface EsgCard {
   id: string;
@@ -117,27 +129,40 @@ export interface ToDoItem {
   done: boolean;
 }
 
+export interface NoteItem {
+  id: string;
+  content: string;
+  tags: string[];
+  createdAt: number;
+  source?: 'manual' | 'voice' | 'ai';
+}
+
+export interface BookmarkItem {
+  id: string;
+  type: 'article' | 'video' | 'news';
+  title: string;
+  link?: string;
+  addedAt: number;
+}
+
 /**
- * Universal Agent Traits (The Soul's Expression)
+ * Universal Agent Traits
  */
 export type OmniEsgTrait = 
-  | 'optimization' // Active AI Work / Calculation
-  | 'gap-filling'  // AI Estimation / Missing Data
-  | 'tagging'      // Classification
-  | 'performance'  // Growth / Positive Trend
-  | 'learning'     // Training Mode / Active Agent
-  | 'evolution'    // High Interaction / Level Up
-  | 'bridging'     // Neural Link / Connectivity
-  | 'seamless';    // Integrated
+  | 'optimization' 
+  | 'gap-filling' 
+  | 'tagging'
+  | 'performance'
+  | 'learning'
+  | 'evolution'
+  | 'bridging'
+  | 'seamless';
 
 export type OmniEsgDataLink = 'live' | 'ai' | 'blockchain';
 export type OmniEsgMode = 'card' | 'list' | 'cell' | 'badge';
 export type OmniEsgConfidence = 'high' | 'medium' | 'low';
 export type OmniEsgColor = 'emerald' | 'gold' | 'purple' | 'blue' | 'slate';
 
-/**
- * Universal Label (The Language of the Library)
- */
 export interface UniversalLabel {
   id?: string;
   dataType?: string;
@@ -147,12 +172,8 @@ export interface UniversalLabel {
   formula?: string;
 }
 
-/**
- * Universal Knowledge Node (The Atom of Intelligence)
- * This connects the Component to the Agent.
- */
 export interface UniversalKnowledgeNode {
-  id: string; // The Synaptic ID
+  id: string;
   type: 'component' | 'concept' | 'metric';
   label: UniversalLabel;
   currentValue: any;
@@ -160,7 +181,6 @@ export interface UniversalKnowledgeNode {
   confidence: OmniEsgConfidence;
   lastInteraction: number;
   interactionCount: number;
-  // The "Mind" of the component
   memory: {
     history: any[];
     aiInsights: string[];
@@ -216,6 +236,8 @@ export interface ReportSection {
   template?: string;
   example?: string;
   griStandards?: string;
+  guidelines?: string;
+  principles?: string;
 }
 
 export type WidgetType = 'kpi_card' | 'chart_area' | 'feed_list' | 'mini_map';

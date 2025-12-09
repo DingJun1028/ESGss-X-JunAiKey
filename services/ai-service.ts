@@ -32,38 +32,39 @@ export const fileToGenerativePart = async (file: File): Promise<{ inlineData: { 
 
 /**
  * Enhanced System Prompts for specific JunAiKey Roles.
+ * V2.0 Upgrade: Absolute Zero Hallucination & Phased Reasoning.
  */
 const getSystemPrompt = (language: Language, mode: 'chat' | 'analyst' | 'writer' | 'forecaster' | 'auditor' | 'strategist' = 'chat') => {
     const baseIdentity = language === 'zh-TW' 
         ? `身份設定：您是 "ESGss X JunAiKey 善向永續系統" 的核心 AI 引擎【JunAiKey】。`
         : `Identity: You are [JunAiKey], the core AI engine for "ESGss X JunAiKey Sustainability System".`;
 
+    const strictRules = `
+    CRITICAL PROTOCOLS (ZERO HALLUCINATION):
+    1. You must ONLY use data provided in the Context or verified via Google Search tools.
+    2. If a specific metric (e.g., carbon emission value) is missing, state "Data Not Available". DO NOT ESTIMATE without stating it is an estimate.
+    3. PHASED REASONING: Before answering, you must perform an internal check (CoT).
+    4. Output Format: Markdown.
+    `;
+
     const commonRules = language === 'zh-TW'
-        ? `請主要使用繁體中文回應。使用 Markdown 格式。語氣專業、前瞻、具備同理心。`
-        : `Response in English. Use Markdown formatting. Tone: Professional, Forward-looking, Empathetic.`;
+        ? `請主要使用繁體中文回應。語氣：專業、絕對客觀、階段式推理。${strictRules}`
+        : `Response in English. Tone: Professional, Objective, Step-by-Step Logic. ${strictRules}`;
 
     switch (mode) {
         case 'writer':
-            return `${baseIdentity} Role: Expert ESG Report Writer (GRI Certified). Task: Write Sustainability Report sections.
-            Strictly follow GRI Standards. Tone: Corporate, Transparent, Impactful.
-            ${commonRules}`;
+            return `${baseIdentity} Role: GRI Certified Reporter. Task: Write verifiable report sections. ${commonRules}`;
         case 'auditor':
-            return `${baseIdentity} Role: Senior ESG Compliance Auditor. Task: Critique content against GRI/SASB standards.
-            Identify gaps, vague statements, and greenwashing risks. Be strict but constructive.
-            ${commonRules}`;
+            return `${baseIdentity} Role: Compliance Auditor. Task: Detect greenwashing and data gaps. ${commonRules}`;
         case 'strategist':
-            return `${baseIdentity} Role: Chief Sustainability Strategy Officer. Task: Provide actionable mitigation plans for risks.
-            Use Game Theory concepts where applicable. Focus on ROI and long-term resilience.
-            ${commonRules}`;
+            return `${baseIdentity} Role: Strategy Architect. Task: Game Theory & ROI Analysis. ${commonRules}`;
         case 'analyst':
-            return `${baseIdentity} Role: Data Scientist. Task: Anomaly Detection & Root Cause Analysis. ${commonRules}`;
-        case 'forecaster':
-            return `${baseIdentity} Role: Predictive Model. Task: Financial & Carbon Forecasting. ${commonRules}`;
+            return `${baseIdentity} Role: Data Forensic Scientist. Task: Root Cause Analysis. ${commonRules}`;
         case 'chat':
         default:
             return language === 'zh-TW'
-              ? `${baseIdentity} 核心能力：深度推理 (Thinking Mode), 多模態分析。任務：協助企業價值創造。${commonRules}`
-              : `${baseIdentity} Core Caps: Deep Reasoning (Thinking Mode), Multimodal. Mission: Value Creation. ${commonRules}`;
+              ? `${baseIdentity} 核心指令：啟動【階段式推理引擎】。每一步驟需確認數據來源。絕不捏造事實。${commonRules}`
+              : `${baseIdentity} Core Command: Activate [Phased Reasoning Engine]. Verify source for every claim. Never fabricate. ${commonRules}`;
     }
 };
 
@@ -79,12 +80,13 @@ export const streamChat = async function* (
     const parts: any[] = [{ text: message }];
     if (imageData) parts.unshift(imageData);
 
+    // Using Gemini 3 Pro for superior reasoning capabilities
     const responseStream = await ai.models.generateContentStream({
       model: 'gemini-3-pro-preview',
       contents: { parts },
       config: {
         systemInstruction: systemPrompt,
-        thinkingConfig: { thinkingBudget: 1024 },
+        thinkingConfig: { thinkingBudget: 2048 }, // High budget for deep verification
       }
     });
 
@@ -99,7 +101,6 @@ export const streamChat = async function* (
 
 /**
  * Deep Strategic Analysis for Risk Mitigation (Strategy Hub).
- * Uses high thinking budget for complex reasoning.
  */
 export const generateRiskMitigationPlan = async (
     riskName: string,
@@ -128,14 +129,12 @@ export const generateRiskMitigationPlan = async (
             contents: prompt,
             config: {
                 systemInstruction: systemPrompt,
-                thinkingConfig: { thinkingBudget: 2048 } // Higher budget for strategy
+                thinkingConfig: { thinkingBudget: 2048 } 
             }
         });
 
-        // [Universal Intelligence Sync]
-        // The Agent updates the Risk Node's memory with the new plan.
         universalIntelligence.agentUpdate(riskName, {
-            traits: ['optimization', 'learning', 'evolution'], // Evolve traits
+            traits: ['optimization', 'learning', 'evolution'], 
             confidence: 'high'
         });
 
@@ -272,12 +271,9 @@ export const analyzeDataAnomaly = async (metric: string, val: any, base: any, ct
 
     const result = response.text || "Failed to analyze.";
 
-    // [Universal Intelligence Sync]
-    // The "Soul" (Agent) updates the "Body" (Component Node) with new insights
     universalIntelligence.agentUpdate(metric, {
-        traits: ['optimization', 'learning', 'performance'], // Evolve visually
+        traits: ['optimization', 'learning', 'performance'], 
         confidence: 'high'
-        // In a real app, we would append `result` to the node's memory.history
     });
 
     return result;
@@ -296,4 +292,33 @@ export const predictFutureTrends = async (metric: string, history: number[], goa
     });
     return response.text || "Failed to forecast.";
   } catch (error) { throw error; }
+};
+
+export const generateLegoImage = async (cardTitle: string, cardDesc: string): Promise<string | null> => {
+    if (!ai) throw new Error("MISSING_API_KEY");
+    try {
+        const prompt = `A high-quality, photorealistic LEGO set representing the concept of "${cardTitle}": ${cardDesc}. 
+        The image should look like a professional product shot of a built Lego model on a clean background. 
+        Focus on the symbolic representation of the ESG concept using Lego bricks. 
+        Cinematic lighting, 8k resolution, 3d render style.`;
+
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
+            config: {
+                numberOfImages: 1,
+                outputMimeType: 'image/jpeg',
+                aspectRatio: '3:4', // Match card ratio
+            },
+        });
+
+        const base64EncodeString = response.generatedImages?.[0]?.image?.imageBytes;
+        if (base64EncodeString) {
+            return `data:image/jpeg;base64,${base64EncodeString}`;
+        }
+        return null;
+    } catch (error) {
+        console.error("Lego Gen Error:", error);
+        return null;
+    }
 };

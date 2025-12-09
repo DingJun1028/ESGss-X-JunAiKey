@@ -9,11 +9,14 @@ import { useCompany } from './providers/CompanyProvider';
 import { generateRiskMitigationPlan } from '../services/ai-service';
 import { marked } from 'marked';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
+import { LockedFeature } from './LockedFeature';
+import { SubscriptionModal } from './SubscriptionModal';
 
 interface StrategyHubProps {
   language: Language;
 }
 
+// ... (RiskNodeBase and StrategicRiskAgent remain unchanged, including them for context is fine but keeping brevity for the change block) ...
 // ----------------------------------------------------------------------
 // Universal Agent: Strategic Risk Node
 // ----------------------------------------------------------------------
@@ -75,12 +78,7 @@ const RiskNodeBase: React.FC<RiskNodeProps> = ({
     );
 };
 
-// Wrap it to make it an Agent
 const StrategicRiskAgent = withUniversalProxy(RiskNodeBase);
-
-// ----------------------------------------------------------------------
-// Main Component
-// ----------------------------------------------------------------------
 
 export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
   const t = TRANSLATIONS[language];
@@ -91,6 +89,7 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
   const [analyzingRisk, setAnalyzingRisk] = useState<string | null>(null);
   const [riskInsight, setRiskInsight] = useState<string>('');
   const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [showSubModal, setShowSubModal] = useState(false);
 
   const handleRiskClick = async (riskName: string) => {
       setAnalyzingRisk(riskName);
@@ -126,6 +125,8 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
 
   return (
     <div className="space-y-8 animate-fade-in relative">
+      <SubscriptionModal isOpen={showSubModal} onClose={() => setShowSubModal(false)} language={language} />
+      
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white mb-2 tracking-tight flex items-center gap-2">
@@ -142,43 +143,45 @@ export const StrategyHub: React.FC<StrategyHubProps> = ({ language }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Risk Heatmap (Now Alive with Agents) */}
         <div className="lg:col-span-2 glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col group min-h-[400px]">
-            <div className="flex justify-between items-center mb-6 relative z-10">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-celestial-blue" />
-                  {isZh ? '動態風險熱點圖' : 'Dynamic Risk Heatmap'}
-                </h3>
-            </div>
-            
-            <div className="relative flex-1 min-h-[350px] w-full bg-slate-900/30 rounded-xl border border-white/5 p-8 flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none p-8 z-0">
-                    {[...Array(9)].map((_, i) => (
-                        <div key={i} className="border border-white/5 border-dashed relative">
-                            {i === 4 && <div className="absolute inset-0 bg-white/5 blur-xl animate-pulse" />}
-                        </div>
-                    ))}
+            <LockedFeature featureName="Deep Reasoning Heatmap" minTier="Pro" onUnlock={() => setShowSubModal(true)}>
+                <div className="flex justify-between items-center mb-6 relative z-10">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-celestial-blue" />
+                    {isZh ? '動態風險熱點圖' : 'Dynamic Risk Heatmap'}
+                    </h3>
                 </div>
+                
+                <div className="relative flex-1 min-h-[350px] w-full bg-slate-900/30 rounded-xl border border-white/5 p-8 flex items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none p-8 z-0">
+                        {[...Array(9)].map((_, i) => (
+                            <div key={i} className="border border-white/5 border-dashed relative">
+                                {i === 4 && <div className="absolute inset-0 bg-white/5 blur-xl animate-pulse" />}
+                            </div>
+                        ))}
+                    </div>
 
-                <div className="relative w-full h-full grid grid-cols-3 grid-rows-3 gap-4 z-10">
-                    <div className="absolute -left-6 top-1/2 -rotate-90 text-[9px] font-bold text-gray-500 tracking-[0.2em] flex items-center gap-2">
-                      <ArrowRight className="w-3 h-3" /> IMPACT
+                    <div className="relative w-full h-full grid grid-cols-3 grid-rows-3 gap-4 z-10">
+                        <div className="absolute -left-6 top-1/2 -rotate-90 text-[9px] font-bold text-gray-500 tracking-[0.2em] flex items-center gap-2">
+                        <ArrowRight className="w-3 h-3" /> IMPACT
+                        </div>
+                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-bold text-gray-500 tracking-[0.2em] flex items-center gap-2">
+                        PROBABILITY <ArrowRight className="w-3 h-3" />
+                        </div>
+                        
+                        {risks.map((risk) => (
+                            <StrategicRiskAgent 
+                                key={risk.id}
+                                id={risk.name} // The ID used for the Brain
+                                label={risk.name}
+                                name={risk.name}
+                                level={risk.level}
+                                probability={risk.probability}
+                                onClick={() => handleRiskClick(risk.name)}
+                            />
+                        ))}
                     </div>
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-bold text-gray-500 tracking-[0.2em] flex items-center gap-2">
-                      PROBABILITY <ArrowRight className="w-3 h-3" />
-                    </div>
-                    
-                    {risks.map((risk) => (
-                        <StrategicRiskAgent 
-                            key={risk.id}
-                            id={risk.name} // The ID used for the Brain
-                            label={risk.name}
-                            name={risk.name}
-                            level={risk.level}
-                            probability={risk.probability}
-                            onClick={() => handleRiskClick(risk.name)}
-                        />
-                    ))}
                 </div>
-            </div>
+            </LockedFeature>
         </div>
 
         {/* AI Action Cards */}

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Language } from '../types';
-import { Crown, Mic, BookOpen, BrainCircuit, PlayCircle, ArrowRight, Lightbulb, X } from 'lucide-react';
+import { Crown, Mic, BookOpen, BrainCircuit, PlayCircle, ArrowRight, Lightbulb, X, Star, Award, Briefcase } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
 interface YangBoZoneProps {
@@ -13,6 +13,27 @@ export const YangBoZone: React.FC<YangBoZoneProps> = ({ language }) => {
   const { addToast } = useToast();
   const [activeSimulation, setActiveSimulation] = useState<boolean>(false);
   const [simulationStep, setSimulationStep] = useState(0);
+
+  // Profile Data based on PDF
+  const profile = {
+      name: isZh ? '楊博 (Thoth)' : 'Thoth Yang',
+      title: isZh ? '創價型 ESG 策略顧問' : 'Value-Creating ESG Strategy Consultant',
+      subtitle: isZh ? '永續轉型實務家 × 生態系推動者' : 'Sustainability Practitioner × Ecosystem Driver',
+      philosophy: isZh 
+        ? '推動「創價型 ESG」，結合矽谷精實創業與永續商模，協助企業將 ESG 轉化為具體競爭力。'
+        : 'Promoting "Value-Creating ESG", combining Silicon Valley Lean Startup with sustainable business models to transform ESG into competitive advantage.',
+      roles: [
+          isZh ? '善向永續 (ESG Sunshine) 創辦人暨執行長' : 'Founder & CEO, ESG Sunshine',
+          isZh ? '台灣社會創新永續發展協會 理事長' : 'Chairman, Social Innovation & Sustainability Development Association',
+          isZh ? 'Berkeley Haas 國際永續策略長課程 台灣端負責人 / 主責講師' : 'Director / Lead Instructor, Berkeley Haas Global ESG Strategy Program (Taiwan)'
+      ],
+      expertise: [
+          isZh ? '創價型 ESG 策略與轉型' : 'Value-Creating ESG Strategy',
+          isZh ? '矽谷精實創業 × 永續商模' : 'Lean Startup × Sustainable Business Models',
+          isZh ? 'AI × ESG 決策儀表板' : 'AI × ESG Decision Dashboard',
+          isZh ? '企業品牌重塑與國際鏈結' : 'Corporate Rebranding & Global Connection'
+      ]
+  };
 
   const weeklyReport = {
       title: isZh ? '全球永續觀察周報 #42' : 'Global Sustainability Weekly #42',
@@ -58,6 +79,75 @@ export const YangBoZone: React.FC<YangBoZoneProps> = ({ language }) => {
             <div>
                 <h2 className="text-3xl font-bold text-white">{isZh ? '楊博專區' : 'Yang Bo Zone'}</h2>
                 <p className="text-gray-400">{isZh ? '創價者的永續智庫與實戰指導' : 'Sustainability Insights & Practical Guidance from Dr. Yang'}</p>
+            </div>
+        </div>
+
+        {/* SPEAKER PROFILE CARD */}
+        <div className="glass-panel p-8 rounded-2xl border border-celestial-gold/30 bg-gradient-to-r from-slate-900 to-slate-900/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-celestial-gold/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            
+            <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+                {/* Avatar / Photo Area */}
+                <div className="w-full md:w-1/3 flex flex-col items-center">
+                    <div className="w-48 h-48 rounded-2xl overflow-hidden border-2 border-celestial-gold/50 shadow-[0_0_20px_rgba(251,191,36,0.2)] mb-4 relative group bg-slate-800">
+                        {/* Placeholder Visual since we can't use the actual image file */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-black flex items-center justify-center">
+                             <Crown className="w-20 h-20 text-celestial-gold opacity-50" />
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm p-2 text-center text-xs text-celestial-gold font-bold uppercase tracking-widest">
+                            THOTH YANG, PH.D.
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <h2 className="text-2xl font-bold text-white mb-1">{profile.name}</h2>
+                        <div className="text-xs text-celestial-gold font-bold tracking-wider uppercase mb-2">PH.D.</div>
+                        <p className="text-sm text-gray-400">{profile.subtitle}</p>
+                    </div>
+                </div>
+
+                {/* Info Area */}
+                <div className="flex-1 space-y-6">
+                    <div>
+                        <h3 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 mb-3 leading-tight">
+                            {profile.title}
+                        </h3>
+                        <div className="p-4 rounded-xl bg-white/5 border-l-4 border-celestial-gold italic text-gray-300 leading-relaxed">
+                            <Lightbulb className="w-4 h-4 text-celestial-gold inline mr-2 mb-1" />
+                            "{profile.philosophy}"
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <div>
+                            <h4 className="text-xs font-bold text-celestial-gold uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <Award className="w-4 h-4" />
+                                {isZh ? '現任職務 (Current Roles)' : 'Current Roles'}
+                            </h4>
+                            <ul className="space-y-3">
+                                {profile.roles.map((role, i) => (
+                                    <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-celestial-gold mt-1.5 shrink-0" />
+                                        <span>{role}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <Star className="w-4 h-4" />
+                                {isZh ? '專業領域 (Expertise)' : 'Expertise'}
+                            </h4>
+                            <ul className="space-y-3">
+                                {profile.expertise.map((item, i) => (
+                                    <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

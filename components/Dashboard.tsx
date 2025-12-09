@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { getMockMetrics, CHART_DATA, TRANSLATIONS } from '../constants';
-import { Wind, Activity, FileText, Zap, BrainCircuit, LayoutTemplate, Plus, Trash2, Grid, X, Globe, Map } from 'lucide-react';
+import { Wind, Activity, FileText, Zap, BrainCircuit, LayoutTemplate, Plus, Trash2, Grid, X, Globe, Map, ScanLine, FileCheck } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -53,6 +53,64 @@ const FeedWidget: React.FC<{ handleAiAnalyze: (label: string) => void }> = React
       <OmniEsgCell id="feed-csrd" mode="list" label="EU CSRD Update" value="New" color="purple" icon={FileText} traits={['learning']} subValue="Regulatory Bot" dataLink="ai" onAiAnalyze={() => handleAiAnalyze('CSRD')} />
   </div>
 ));
+
+// Optical Interpretation Widget (Simulating IDP)
+const IdpScannerWidget: React.FC<{ language: Language, isLoading: boolean }> = ({ language, isLoading }) => {
+    const [scanText, setScanText] = useState('INITIALIZING...');
+    
+    // Simulate optical character recognition "decoding" effect
+    useEffect(() => {
+        if (isLoading) return;
+        
+        const phases = [
+            "SCANNING_DOC...",
+            "DETECTING_TABLES...",
+            "EXTRACTING_ENTITIES...",
+            "Scope 1: 420.5 tCO2e", // Final result
+        ];
+        
+        let phaseIndex = 0;
+        const interval = setInterval(() => {
+            setScanText(phases[phaseIndex]);
+            phaseIndex = (phaseIndex + 1) % phases.length;
+        }, 1500);
+
+        return () => clearInterval(interval);
+    }, [isLoading]);
+
+    return (
+        <div className="p-4 bg-slate-800/50 rounded-xl border border-white/5 relative overflow-hidden group/scan">
+            <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2">
+                    <ScanLine className="w-4 h-4 text-celestial-emerald" />
+                    <span className="text-xs font-bold text-gray-300">{language === 'zh-TW' ? '智能文檔解析 (IDP)' : 'Intelligent Doc Processing'}</span>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 animate-pulse">LIVE</span>
+            </div>
+            
+            <div className="relative h-24 bg-black/40 rounded-lg border border-dashed border-white/10 flex items-center justify-center mt-2 overflow-hidden">
+                {/* Document Icon Background */}
+                <FileText className="w-12 h-12 text-gray-700 absolute opacity-30" />
+                
+                {/* The Scanning Laser Beam */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-celestial-emerald shadow-[0_0_15px_rgba(16,185,129,1)] animate-[scan_2s_linear_infinite]" />
+                
+                {/* Decoding Text Effect (Optical Interpretation) */}
+                <div className="relative z-10 font-mono text-sm text-emerald-400 font-bold bg-black/60 px-2 py-1 rounded backdrop-blur-sm border border-emerald-500/30 shadow-lg">
+                    {isLoading ? <span className="animate-pulse">LOADING...</span> : scanText}
+                </div>
+            </div>
+            
+            <div className="mt-2 flex justify-between items-center text-[10px] text-gray-500">
+                <span>File: invoice_2024_Q3.pdf</span>
+                <div className="flex items-center gap-1">
+                    <FileCheck className="w-3 h-3 text-emerald-500" />
+                    <span>OCR Active</span>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
   const t = TRANSLATIONS[language].dashboard;
@@ -162,19 +220,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ language }) => {
           )}
         </div>
 
-        <div className="glass-panel p-6 rounded-2xl relative flex flex-col min-h-[400px]">
-          <h3 className="text-lg font-semibold text-white mb-4">{t.feedTitle}</h3>
-          {isLoading ? <OmniEsgCell mode="list" loading={true} /> : <FeedWidget handleAiAnalyze={handleAiAnalyze} />}
-          
-          <div className="mt-6 pt-4 border-t border-white/10">
-            <h4 className="text-sm text-gray-400 mb-2">{t.marketingTitle}</h4>
-            <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-               <span className="text-xs text-gray-400">View Rate</span>
-               <div className="text-right">
-                  {isLoading ? <div className="h-6 w-12 bg-white/10 rounded animate-pulse" /> : <span className="text-lg font-bold text-white">42%</span>}
-               </div>
-            </div>
+        <div className="glass-panel p-6 rounded-2xl relative flex flex-col min-h-[400px] gap-6">
+          {/* Feed Widget */}
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white mb-4">{t.feedTitle}</h3>
+            {isLoading ? <OmniEsgCell mode="list" loading={true} /> : <FeedWidget handleAiAnalyze={handleAiAnalyze} />}
           </div>
+
+          {/* Enhanced IDP Scanner Widget */}
+          <IdpScannerWidget language={language} isLoading={isLoading} />
         </div>
       </div>
     </>

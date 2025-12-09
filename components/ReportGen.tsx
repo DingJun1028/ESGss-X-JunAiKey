@@ -1,12 +1,15 @@
+
 import React, { useState, useRef } from 'react';
 import { useCompany } from './providers/CompanyProvider';
 import { generateReportChapter, auditReportContent } from '../services/ai-service';
 import { Language, ReportSection } from '../types';
 import { REPORT_STRUCTURE } from '../constants';
-import { FileText, Sparkles, Download, Loader2, Save, ChevronRight, BookOpen, ShieldCheck, CheckCircle } from 'lucide-react';
+import { FileText, Sparkles, Download, Loader2, Save, ChevronRight, BookOpen, ShieldCheck, CheckCircle, Info } from 'lucide-react';
 import { marked } from 'marked';
 import { useToast } from '../contexts/ToastContext';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
+import { LockedFeature } from './LockedFeature';
+import { SubscriptionModal } from './SubscriptionModal';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
@@ -68,7 +71,7 @@ const ChapterAgent = withUniversalProxy(ChapterNodeBase);
 // ----------------------------------------------------------------------
 
 export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
-  const { companyName, esgScores, totalScore, carbonCredits, budget } = useCompany();
+  const { companyName, esgScores, totalScore, carbonCredits, budget, tier } = useCompany();
   const { addToast } = useToast();
   
   const [activeSectionId, setActiveSectionId] = useState<string>('1.01');
@@ -77,6 +80,7 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResult, setAuditResult] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showSubModal, setShowSubModal] = useState(false);
   
   const reportRef = useRef<HTMLDivElement>(null);
   const isZh = language === 'zh-TW';
@@ -91,10 +95,19 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
     }
     return undefined;
   };
+  
+  const getParentChapter = (subId: string): ReportSection | undefined => {
+      return REPORT_STRUCTURE.find(c => c.subSections?.some(s => s.id === subId));
+  };
 
   const activeSection = getActiveSectionData();
+  const parentChapter = activeSectionId ? getParentChapter(activeSectionId) : undefined;
 
   const handleGenerateSection = async () => {
+    if (tier === 'Free') {
+        setShowSubModal(true);
+        return;
+    }
     if (!activeSection) return;
     setIsGenerating(true);
     try {
@@ -110,6 +123,10 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
   };
 
   const handleAuditSection = async () => {
+      if (tier === 'Free') {
+          setShowSubModal(true);
+          return;
+      }
       const content = generatedContent[activeSectionId];
       if (!content || !activeSection) return;
       
@@ -143,6 +160,8 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col animate-fade-in gap-4">
+        <SubscriptionModal isOpen={showSubModal} onClose={() => setShowSubModal(false)} language={language} />
+        
         <div className="flex justify-between items-center shrink-0">
             <div className="flex items-center gap-4">
                 <div className="p-3 bg-celestial-purple/10 rounded-xl border border-celestial-purple/20">
@@ -188,12 +207,31 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
             </div>
 
             <div className="col-span-9 flex flex-col gap-6 h-full min-h-0">
-                <div className="glass-panel p-6 rounded-2xl border border-white/10 bg-slate-900/60 shrink-0 max-h-[25%] overflow-y-auto custom-scrollbar relative">
+                {/* Guidelines Panel */}
+                <div className="glass-panel p-6 rounded-2xl border border-white/10 bg-slate-900/60 shrink-0 max-h-[35%] overflow-y-auto custom-scrollbar relative">
                     <div className="absolute top-4 right-4 flex gap-2">
                         {activeSection?.griStandards && <span className="text-[10px] px-2 py-1 bg-celestial-gold/10 text-celestial-gold border border-celestial-gold/20 rounded-full">{activeSection.griStandards}</span>}
                     </div>
                     <h3 className="text-lg font-bold text-white mb-2">{activeSection?.title}</h3>
-                    <p className="text-sm text-gray-300 italic">{activeSection?.template || "No template."}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4 mt-4 text-xs text-gray-300">
+                        {parentChapter && (
+                            <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                                <div className="flex items-center gap-2 mb-1 text-emerald-400 font-bold uppercase tracking-wider">
+                                    <BookOpen className="w-3 h-3" /> Writing Guidelines
+                                </div>
+                                <p>{parentChapter.guidelines || "No specific guidelines."}</p>
+                            </div>
+                        )}
+                        {parentChapter && (
+                            <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                                <div className="flex items-center gap-2 mb-1 text-celestial-purple font-bold uppercase tracking-wider">
+                                    <Info className="w-3 h-3" /> Guiding Principles
+                                </div>
+                                <p>{parentChapter.principles || "Follow standard GRI principles."}</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex-1 glass-panel rounded-2xl border border-white/10 bg-slate-900/40 flex flex-col min-h-0 relative">
@@ -211,11 +249,17 @@ export const ReportGen: React.FC<ReportGenProps> = ({ language }) => {
 
                     <div className="flex-1 flex overflow-hidden">
                         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-950/30" ref={reportRef}>
-                            {generatedContent[activeSectionId] ? (
-                                <div className="markdown-content text-gray-300 leading-relaxed space-y-4 max-w-3xl mx-auto" dangerouslySetInnerHTML={{ __html: marked.parse(generatedContent[activeSectionId]) as string }} />
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-60"><FileText className="w-16 h-16 mb-4" /><p>{isZh ? '尚無內容' : 'No content'}</p></div>
-                            )}
+                            <LockedFeature featureName="Smart Report Editor" minTier="Free">
+                                {generatedContent[activeSectionId] ? (
+                                    <div className="markdown-content text-gray-300 leading-relaxed space-y-4 max-w-3xl mx-auto" dangerouslySetInnerHTML={{ __html: marked.parse(generatedContent[activeSectionId]) as string }} />
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-60">
+                                        <FileText className="w-16 h-16 mb-4" />
+                                        <p>{isZh ? '尚無內容' : 'No content'}</p>
+                                        <p className="text-xs mt-2">Click AI Write to draft this section.</p>
+                                    </div>
+                                )}
+                            </LockedFeature>
                         </div>
                         
                         {/* Audit Result Panel */}

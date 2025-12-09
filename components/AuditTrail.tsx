@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Language, AuditLogEntry } from '../types';
-import { ShieldCheck, Clock, Hash, Link as LinkIcon, AlertCircle, X, FileCheck, Calendar, User, Code } from 'lucide-react';
+import { ShieldCheck, Clock, Hash, Link as LinkIcon, AlertCircle, X, FileCheck, Calendar, User, Code, Search, Filter } from 'lucide-react';
 import { useCompany } from './providers/CompanyProvider';
 
 interface AuditTrailProps {
@@ -13,7 +13,31 @@ export const AuditTrail: React.FC<AuditTrailProps> = ({ language }) => {
   const { auditLogs } = useCompany();
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
 
-  // If logs are empty, show a placeholder
+  // Filter States
+  const [filterAction, setFilterAction] = useState('');
+  const [filterUser, setFilterUser] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Filtering Logic
+  const filteredLogs = useMemo(() => {
+    return auditLogs.filter(log => {
+      const matchAction = log.action.toLowerCase().includes(filterAction.toLowerCase());
+      const matchUser = log.user.toLowerCase().includes(filterUser.toLowerCase());
+      
+      let matchDate = true;
+      if (startDate) {
+        matchDate = matchDate && log.timestamp >= new Date(startDate).setHours(0,0,0,0);
+      }
+      if (endDate) {
+        matchDate = matchDate && log.timestamp <= new Date(endDate).setHours(23,59,59,999);
+      }
+
+      return matchAction && matchUser && matchDate;
+    });
+  }, [auditLogs, filterAction, filterUser, startDate, endDate]);
+
+  // If logs are empty (total), show a placeholder
   const hasLogs = auditLogs.length > 0;
 
   return (
@@ -27,6 +51,68 @@ export const AuditTrail: React.FC<AuditTrailProps> = ({ language }) => {
                 <p className="text-gray-400">{isZh ? '區塊鏈驗證之不可篡改紀錄 (Linked to System Actions)' : 'Blockchain Verified Immutable Logs (Linked to System Actions)'}</p>
             </div>
         </div>
+
+        {/* Filter Bar */}
+        {hasLogs && (
+            <div className="glass-panel p-4 rounded-xl border border-white/10 flex flex-col md:flex-row gap-4 items-center">
+                <div className="flex items-center gap-2 text-gray-400 text-sm font-bold uppercase tracking-wider shrink-0">
+                    <Filter className="w-4 h-4" />
+                    {isZh ? '篩選' : 'Filter'}
+                </div>
+                
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                        <input 
+                            type="text" 
+                            placeholder={isZh ? "搜尋動作..." : "Filter by Action..."}
+                            value={filterAction}
+                            onChange={(e) => setFilterAction(e.target.value)}
+                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:ring-1 focus:ring-celestial-emerald outline-none transition-all placeholder-gray-600"
+                        />
+                    </div>
+                    <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                        <input 
+                            type="text" 
+                            placeholder={isZh ? "搜尋使用者..." : "Filter by User..."}
+                            value={filterUser}
+                            onChange={(e) => setFilterUser(e.target.value)}
+                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:ring-1 focus:ring-celestial-emerald outline-none transition-all placeholder-gray-600"
+                        />
+                    </div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                        <input 
+                            type="date" 
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:ring-1 focus:ring-celestial-emerald outline-none [color-scheme:dark] placeholder-gray-600"
+                            placeholder={isZh ? "開始日期" : "Start Date"}
+                        />
+                    </div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                        <input 
+                            type="date" 
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:ring-1 focus:ring-celestial-emerald outline-none [color-scheme:dark] placeholder-gray-600"
+                            placeholder={isZh ? "結束日期" : "End Date"}
+                        />
+                    </div>
+                </div>
+                
+                {(filterAction || filterUser || startDate || endDate) && (
+                    <button 
+                        onClick={() => { setFilterAction(''); setFilterUser(''); setStartDate(''); setEndDate(''); }}
+                        className="px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors whitespace-nowrap"
+                    >
+                        {isZh ? '清除' : 'Clear'}
+                    </button>
+                )}
+            </div>
+        )}
 
         <div className="glass-panel rounded-2xl overflow-hidden border border-white/10 min-h-[400px]">
             {!hasLogs ? (
@@ -48,30 +134,41 @@ export const AuditTrail: React.FC<AuditTrailProps> = ({ language }) => {
                             </tr>
                         </thead>
                         <tbody className="text-sm divide-y divide-white/5">
-                            {auditLogs.map((log) => (
-                                <tr 
-                                    key={log.id} 
-                                    className="hover:bg-white/5 transition-colors group cursor-pointer"
-                                    onClick={() => setSelectedLog(log)}
-                                >
-                                    <td className="p-4 pl-6 text-gray-300 flex items-center gap-2 whitespace-nowrap">
-                                        <Clock className="w-3 h-3 text-gray-500" />
-                                        {new Date(log.timestamp).toLocaleTimeString()} <span className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleDateString()}</span>
-                                    </td>
-                                    <td className="p-4 font-medium text-white whitespace-nowrap">{log.action}</td>
-                                    <td className="p-4 text-celestial-purple whitespace-nowrap">{log.user}</td>
-                                    <td className="p-4 text-gray-300 break-words max-w-xs">{log.details}</td>
-                                    <td className="p-4 font-mono text-xs text-gray-500 flex items-center gap-1 whitespace-nowrap">
-                                        <Hash className="w-3 h-3" />
-                                        {log.hash.substring(0, 8)}...{log.hash.substring(log.hash.length-4)}
-                                    </td>
-                                    <td className="p-4 text-right pr-6 whitespace-nowrap">
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
-                                            <LinkIcon className="w-3 h-3" /> Verified
-                                        </span>
+                            {filteredLogs.length > 0 ? (
+                                filteredLogs.map((log) => (
+                                    <tr 
+                                        key={log.id} 
+                                        className="hover:bg-white/5 transition-colors group cursor-pointer"
+                                        onClick={() => setSelectedLog(log)}
+                                    >
+                                        <td className="p-4 pl-6 text-gray-300 flex items-center gap-2 whitespace-nowrap">
+                                            <Clock className="w-3 h-3 text-gray-500" />
+                                            {new Date(log.timestamp).toLocaleTimeString()} <span className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleDateString()}</span>
+                                        </td>
+                                        <td className="p-4 font-medium text-white whitespace-nowrap">{log.action}</td>
+                                        <td className="p-4 text-celestial-purple whitespace-nowrap">{log.user}</td>
+                                        <td className="p-4 text-gray-300 break-words max-w-xs">{log.details}</td>
+                                        <td className="p-4 font-mono text-xs text-gray-500 flex items-center gap-1 whitespace-nowrap">
+                                            <Hash className="w-3 h-3" />
+                                            {log.hash.substring(0, 8)}...{log.hash.substring(log.hash.length-4)}
+                                        </td>
+                                        <td className="p-4 text-right pr-6 whitespace-nowrap">
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
+                                                <LinkIcon className="w-3 h-3" /> Verified
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="p-12 text-center text-gray-500">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Search className="w-8 h-8 opacity-20" />
+                                            <p>{isZh ? '無符合篩選條件的紀錄' : 'No logs match your filters.'}</p>
+                                        </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>

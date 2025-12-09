@@ -6,13 +6,11 @@ import { LoginScreen } from './components/LoginScreen';
 import { ToastProvider } from './contexts/ToastContext';
 import { CompanyProvider } from './components/providers/CompanyProvider';
 import { ToastContainer } from './components/Toast';
-import { AiAssistant } from './components/AiAssistant';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoadingScreen } from './components/LoadingScreen';
 import { OnboardingSystem } from './components/OnboardingSystem';
-import { TRANSLATIONS } from './constants';
 
-// Lazy Load Modules for Performance
+// Lazy Load Modules
 const MyEsg = lazy(() => import('./components/MyEsg').then(module => ({ default: module.MyEsg })));
 const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
 const ResearchHub = lazy(() => import('./components/ResearchHub').then(module => ({ default: module.ResearchHub })));
@@ -29,12 +27,13 @@ const AuditTrail = lazy(() => import('./components/AuditTrail').then(module => (
 const GoodwillCoin = lazy(() => import('./components/GoodwillCoin').then(module => ({ default: module.GoodwillCoin })));
 const Gamification = lazy(() => import('./components/Gamification').then(module => ({ default: module.Gamification })));
 const Settings = lazy(() => import('./components/Settings').then(module => ({ default: module.Settings })));
-
-// New Modules
 const YangBoZone = lazy(() => import('./components/YangBoZone').then(module => ({ default: module.YangBoZone })));
 const BusinessIntel = lazy(() => import('./components/BusinessIntel').then(module => ({ default: module.BusinessIntel })));
 const HealthCheck = lazy(() => import('./components/HealthCheck').then(module => ({ default: module.HealthCheck })));
 const UniversalTools = lazy(() => import('./components/UniversalTools').then(module => ({ default: module.UniversalTools })));
+const Fundraising = lazy(() => import('./components/Fundraising').then(module => ({ default: module.Fundraising })));
+const AboutUs = lazy(() => import('./components/AboutUs').then(module => ({ default: module.AboutUs })));
+const ApiZone = lazy(() => import('./components/ApiZone').then(module => ({ default: module.ApiZone })));
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -42,7 +41,6 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('zh-TW');
 
   useEffect(() => {
-    // Load preference on mount
     const savedLang = localStorage.getItem('app_language') as Language;
     if (savedLang) {
       setLanguage(savedLang);
@@ -55,52 +53,6 @@ const App: React.FC = () => {
     localStorage.setItem('app_language', newLang);
   };
   
-  // Surprise Engine (Simple simulation)
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const handleSurprise = () => {
-      // In a full app, this would show a toast or unlock a badge
-    };
-    window.addEventListener('click', handleSurprise);
-    return () => window.removeEventListener('click', handleSurprise);
-  }, [isLoggedIn]);
-
-  const renderView = () => {
-    // Each route is wrapped in Suspense to handle lazy loading states
-    // And wrapped in ErrorBoundary to handle module-specific crashes
-    return (
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingScreen message="Loading Module Resource..." />}>
-          {(() => {
-            switch (currentView) {
-              case View.MY_ESG: return <MyEsg language={language} />;
-              case View.DASHBOARD: return <Dashboard language={language} />;
-              case View.RESEARCH_HUB: return <ResearchHub language={language} />;
-              case View.ACADEMY: return <Academy language={language} />;
-              case View.DIAGNOSTICS: return <Diagnostics language={language} />;
-              case View.STRATEGY: return <StrategyHub language={language} />;
-              case View.REPORT: return <ReportGen language={language} />;
-              case View.CARBON: return <CarbonAsset language={language} />;
-              case View.TALENT: return <TalentPassport language={language} />;
-              case View.INTEGRATION: return <IntegrationHub language={language} />;
-              case View.CULTURE: return <CultureBot language={language} />;
-              case View.FINANCE: return <FinanceSim language={language} />;
-              case View.AUDIT: return <AuditTrail language={language} />;
-              case View.GOODWILL: return <GoodwillCoin language={language} />;
-              case View.GAMIFICATION: return <Gamification language={language} />;
-              case View.SETTINGS: return <Settings language={language} />;
-              case View.YANG_BO: return <YangBoZone language={language} />;
-              case View.BUSINESS_INTEL: return <BusinessIntel language={language} />;
-              case View.HEALTH_CHECK: return <HealthCheck language={language} />;
-              case View.UNIVERSAL_TOOLS: return <UniversalTools language={language} />;
-              default: return <MyEsg language={language} />;
-            }
-          })()}
-        </Suspense>
-      </ErrorBoundary>
-    );
-  };
-
   return (
     <ToastProvider>
       {!isLoggedIn ? (
@@ -116,9 +68,37 @@ const App: React.FC = () => {
             language={language}
             onToggleLanguage={handleToggleLanguage}
           >
-            {renderView()}
             <ErrorBoundary>
-               <AiAssistant language={language} />
+              <Suspense fallback={<LoadingScreen message="Loading Module Resource..." />}>
+                {(() => {
+                  switch (currentView) {
+                    case View.MY_ESG: return <MyEsg language={language} />;
+                    case View.DASHBOARD: return <Dashboard language={language} />;
+                    case View.CARD_GAME: return <Gamification language={language} />;
+                    case View.FUNDRAISING: return <Fundraising language={language} />;
+                    case View.ABOUT_US: return <AboutUs language={language} />;
+                    case View.API_ZONE: return <ApiZone language={language} />;
+                    case View.RESEARCH_HUB: return <ResearchHub language={language} />;
+                    case View.ACADEMY: return <Academy language={language} />;
+                    case View.DIAGNOSTICS: return <Diagnostics language={language} />;
+                    case View.STRATEGY: return <StrategyHub language={language} />;
+                    case View.REPORT: return <ReportGen language={language} />;
+                    case View.CARBON: return <CarbonAsset language={language} />;
+                    case View.TALENT: return <TalentPassport language={language} />;
+                    case View.INTEGRATION: return <IntegrationHub language={language} />;
+                    case View.CULTURE: return <CultureBot language={language} />;
+                    case View.FINANCE: return <FinanceSim language={language} />;
+                    case View.AUDIT: return <AuditTrail language={language} />;
+                    case View.GOODWILL: return <GoodwillCoin language={language} />;
+                    case View.SETTINGS: return <Settings language={language} />;
+                    case View.YANG_BO: return <YangBoZone language={language} />;
+                    case View.BUSINESS_INTEL: return <BusinessIntel language={language} />;
+                    case View.HEALTH_CHECK: return <HealthCheck language={language} />;
+                    case View.UNIVERSAL_TOOLS: return <UniversalTools language={language} />;
+                    default: return <MyEsg language={language} />;
+                  }
+                })()}
+              </Suspense>
             </ErrorBoundary>
           </Layout>
         </CompanyProvider>

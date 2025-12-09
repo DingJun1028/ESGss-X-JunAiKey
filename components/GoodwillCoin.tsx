@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Language } from '../types';
 import { Coins, ArrowUpRight, ArrowDownLeft, ShoppingBag, Package, Sparkles, AlertCircle, Loader2, Wallet, CreditCard } from 'lucide-react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useCompany } from './providers/CompanyProvider';
 import { useToast } from '../contexts/ToastContext';
-import { ESG_CARDS } from '../constants';
+import { getEsgCards } from '../constants';
 import { withUniversalProxy, InjectedProxyProps } from './hoc/withUniversalProxy';
 
 interface GoodwillCoinProps {
@@ -90,6 +90,9 @@ export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
   const [isTransacting, setIsTransacting] = useState(false);
   const [openingPack, setOpeningPack] = useState(false);
 
+  // Dynamic Cards
+  const ESG_CARDS = useMemo(() => getEsgCards(language), [language]);
+
   const handleTransaction = (type: 'send' | 'receive') => {
       setIsTransacting(true);
       const amount = Math.floor(Math.random() * 50) + 10;
@@ -121,18 +124,22 @@ export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
       setOpeningPack(true);
       updateGoodwillBalance(-cost);
       
-      // Simulate Pack Opening Logic
+      // Simulate Pack Opening Logic with 15 Cards
       setTimeout(() => {
-          // Select a random card that isn't collected yet, or a duplicate
-          const availableCards = ESG_CARDS;
-          const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+          let unlockedNames = [];
           
-          unlockCard(randomCard.id);
-          addAuditLog('Marketplace Purchase', `Bought ${packName} for ${cost} GWC. Unlocked: ${randomCard.title}`);
+          for (let i = 0; i < 15; i++) {
+              const availableCards = ESG_CARDS;
+              const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+              unlockCard(randomCard.id);
+              if (i < 3) unlockedNames.push(randomCard.title); // Just capture first few for toast
+          }
           
-          addToast('reward', isZh ? `獲得卡片：${randomCard.title}` : `Card Unlocked: ${randomCard.title}`, 'Marketplace', 5000);
+          addAuditLog('Marketplace Purchase', `Bought ${packName} for ${cost} GWC. Acquired 15 cards.`);
+          
+          addToast('reward', isZh ? `獲得 15 張卡片！包含：${unlockedNames[0]}...` : `Acquired 15 Cards! Includes: ${unlockedNames[0]}...`, 'Pack Opened', 5000);
           setOpeningPack(false);
-      }, 2000);
+      }, 2500);
   };
 
   return (
@@ -169,13 +176,13 @@ export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
             <div className="md:col-span-2 glass-panel p-6 rounded-2xl relative overflow-hidden">
                 <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
                     <ShoppingBag className="w-5 h-5 text-celestial-purple" />
-                    {isZh ? '卡片補充包' : 'Card Booster Packs'}
+                    {isZh ? '善向卡牌包 (15張/包)' : 'Card Booster Packs (15/pack)'}
                 </h3>
                 
                 {openingPack && (
                     <div className="absolute inset-0 bg-slate-900/90 z-20 flex flex-col items-center justify-center backdrop-blur-sm animate-fade-in">
                         <Package className="w-16 h-16 text-celestial-gold animate-bounce" />
-                        <span className="text-celestial-gold font-bold mt-4 animate-pulse">Opening Pack...</span>
+                        <span className="text-celestial-gold font-bold mt-4 animate-pulse">Opening Pack (15 Cards)...</span>
                     </div>
                 )}
 
@@ -188,7 +195,7 @@ export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
                             <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold text-white">500 GWC</span>
                         </div>
                         <h4 className="font-bold text-white mb-1">Standard Pack</h4>
-                        <p className="text-xs text-gray-400">Contains 1 random ESG card. Chance for Rare.</p>
+                        <p className="text-xs text-gray-400">Contains 15 random ESG cards. Great value.</p>
                     </div>
 
                     {/* Premium Pack */}
@@ -199,7 +206,7 @@ export const GoodwillCoin: React.FC<GoodwillCoinProps> = ({ language }) => {
                             <span className="px-2 py-1 bg-celestial-gold text-black rounded text-xs font-bold">1200 GWC</span>
                         </div>
                         <h4 className="font-bold text-white mb-1 text-transparent bg-clip-text bg-gradient-to-r from-celestial-gold to-amber-200">Premium Pack</h4>
-                        <p className="text-xs text-gray-400">Higher chance for Epic & Legendary cards.</p>
+                        <p className="text-xs text-gray-400">15 Cards with higher chance for Epic & Legendary.</p>
                     </div>
                 </div>
             </div>

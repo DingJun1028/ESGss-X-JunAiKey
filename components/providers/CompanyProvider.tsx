@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { DashboardWidget, AuditLogEntry, EsgCard, Quest, ToDoItem, Badge, CarbonData } from '../../types';
+import { DashboardWidget, AuditLogEntry, EsgCard, Quest, ToDoItem, Badge, CarbonData, NoteItem, BookmarkItem, UserTier, MasteryLevel } from '../../types';
 
 export interface EsgScores {
   environmental: number;
@@ -21,13 +21,23 @@ interface CompanyContextType {
   userRole: string;
   setUserRole: (role: string) => void;
   
+  // Subscription
+  tier: UserTier;
+  upgradeTier: (tier: UserTier) => void;
+
   // Gamification Global State
   xp: number;
   level: number;
-  collectedCards: string[]; // List of Card IDs
+  collectedCards: string[]; // List of Card IDs (Ownership)
+  purifiedCards: string[];  // List of Card IDs that have passed the Knowledge Quiz
+  cardMastery: Record<string, MasteryLevel>; // Mastery level for each card
+  
+  updateCardMastery: (cardId: string, level: MasteryLevel) => void;
+  unlockCard: (cardId: string) => void;
+  purifyCard: (cardId: string) => void; // New Action
+  
   badges: Badge[];
   awardXp: (amount: number) => void;
-  unlockCard: (cardId: string) => void;
   checkBadges: () => Badge[]; // Triggers badge check and returns newly unlocked
   
   // Quests & Tasks
@@ -38,6 +48,16 @@ interface CompanyContextType {
   addTodo: (text: string) => void;
   toggleTodo: (id: number) => void;
   deleteTodo: (id: number) => void;
+
+  // Universal Tools Data (CRUD)
+  universalNotes: NoteItem[];
+  addNote: (content: string, tags?: string[], source?: 'manual'|'voice'|'ai') => void;
+  updateNote: (id: string, content: string) => void;
+  deleteNote: (id: string) => void;
+
+  // Bookmarks
+  bookmarks: BookmarkItem[];
+  toggleBookmark: (item: Omit<BookmarkItem, 'addedAt'>) => void;
 
   /** Current budget available for investments. */
   budget: number;
@@ -112,7 +132,8 @@ const DEFAULT_COMPANY_NAME = 'EcoForward Inc.';
 const DEFAULT_USER_NAME = 'DingJun Hong';
 const DEFAULT_USER_ROLE = 'Chief Sustainability Officer';
 const DEFAULT_XP = 1250;
-const DEFAULT_CARDS = ['card-001']; // Starter card
+const DEFAULT_CARDS = ['card-001']; // Starter card (Owned)
+const DEFAULT_PURIFIED_CARDS = ['card-001']; // Starter card (Already Purified)
 
 // Default widgets for a new user's custom dashboard
 const DEFAULT_WIDGETS: DashboardWidget[] = [
@@ -168,6 +189,8 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_NAME);
   const [userName, setUserName] = useState(DEFAULT_USER_NAME);
   const [userRole, setUserRole] = useState(DEFAULT_USER_ROLE);
+  const [tier, setTier] = useState<UserTier>('Free'); // Default to Free
+  
   const [budget, setBudget] = useState(DEFAULT_BUDGET);
   const [carbonCredits, setCarbonCredits] = useState(DEFAULT_CREDITS);
   const [goodwillBalance, setGoodwillBalance] = useState(DEFAULT_GOODWILL);
@@ -175,9 +198,15 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Gamification State
   const [xp, setXp] = useState(DEFAULT_XP);
   const [collectedCards, setCollectedCards] = useState<string[]>(DEFAULT_CARDS);
+  const [purifiedCards, setPurifiedCards] = useState<string[]>(DEFAULT_PURIFIED_CARDS);
+  const [cardMastery, setCardMastery] = useState<Record<string, MasteryLevel>>({});
   const [badges, setBadges] = useState<Badge[]>(DEFAULT_BADGES);
   const [quests, setQuests] = useState<Quest[]>(DEFAULT_QUESTS);
   const [todos, setTodos] = useState<ToDoItem[]>(DEFAULT_TODOS);
+
+  // Tools & Bookmarks
+  const [universalNotes, setUniversalNotes] = useState<NoteItem[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
 
   const [carbonData, setCarbonData] = useState<CarbonData>(DEFAULT_CARBON_DATA);
   const [esgScores, setEsgScores] = useState<EsgScores>(DEFAULT_SCORES);
@@ -196,11 +225,14 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (parsed.companyName) setCompanyName(parsed.companyName);
           if (parsed.userName) setUserName(parsed.userName);
           if (parsed.userRole) setUserRole(parsed.userRole);
+          if (parsed.tier) setTier(parsed.tier);
           if (parsed.budget !== undefined) setBudget(parsed.budget);
           if (parsed.carbonCredits !== undefined) setCarbonCredits(parsed.carbonCredits);
           if (parsed.goodwillBalance !== undefined) setGoodwillBalance(parsed.goodwillBalance);
           if (parsed.xp !== undefined) setXp(parsed.xp);
           if (parsed.collectedCards) setCollectedCards(parsed.collectedCards);
+          if (parsed.purifiedCards) setPurifiedCards(parsed.purifiedCards);
+          if (parsed.cardMastery) setCardMastery(parsed.cardMastery);
           if (parsed.esgScores) setEsgScores(parsed.esgScores);
           if (parsed.customWidgets) setCustomWidgets(parsed.customWidgets);
           if (parsed.auditLogs) setAuditLogs(parsed.auditLogs);
@@ -209,6 +241,8 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (parsed.badges) setBadges(parsed.badges);
           if (parsed.carbonData) setCarbonData(parsed.carbonData);
           if (parsed.lastBriefingDate) setLastBriefingDate(parsed.lastBriefingDate);
+          if (parsed.universalNotes) setUniversalNotes(parsed.universalNotes);
+          if (parsed.bookmarks) setBookmarks(parsed.bookmarks);
         } catch (e) {
           console.error("ESGss: Failed to load persistence data.", e);
         }
@@ -221,69 +255,13 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (isInitialized && typeof window !== 'undefined') {
       const state = {
-        companyName, userName, userRole, budget, carbonCredits, goodwillBalance,
-        xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, lastBriefingDate
+        companyName, userName, userRole, tier, budget, carbonCredits, goodwillBalance,
+        xp, collectedCards, purifiedCards, cardMastery, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, lastBriefingDate,
+        universalNotes, bookmarks
       };
       localStorage.setItem('esgss_storage_v1', JSON.stringify(state));
     }
-  }, [companyName, userName, userRole, budget, carbonCredits, goodwillBalance, xp, collectedCards, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, lastBriefingDate, isInitialized]);
-
-  // --- SYSTEM HEARTBEAT SIMULATION ---
-  useEffect(() => {
-      if (!isInitialized) return;
-
-      const interval = setInterval(() => {
-          // 1. Carbon Data Fluctuation (IoT Simulation)
-          const fluctuation = Math.floor(Math.random() * 6) - 2; 
-          if (fluctuation !== 0) {
-              setCarbonData(prev => ({
-                  ...prev,
-                  scope1: Math.max(0, prev.scope1 + fluctuation)
-              }));
-          }
-
-          // 2. Random Events (10% chance every 10 seconds)
-          if (Math.random() < 0.1) {
-              const events = [
-                  { text: 'IoT Sensor: Anomaly detected in Plant B (+2% energy)', impact: 'env', val: -0.5 },
-                  { text: 'Market: Carbon Price surged to €92/t', impact: 'budget', val: 0 },
-                  { text: 'News: Competitor announced Net Zero 2030', impact: 'soc', val: 0 },
-                  { text: 'System: Automated Efficiency Optimization (+0.1 Score)', impact: 'env', val: 0.1 },
-                  { text: 'Supply Chain: Vendor Data Validated', impact: 'gov', val: 0.2 }
-              ];
-              const event = events[Math.floor(Math.random() * events.length)];
-              
-              setLatestEvent(event.text);
-              
-              // Helper to avoid circular deps in useEffect
-              const addLog = (action: string, details: string) => {
-                  const newLog: AuditLogEntry = {
-                      id: `tx-${Date.now()}`,
-                      timestamp: Date.now(),
-                      action,
-                      user: userName || 'System',
-                      details,
-                      hash: generateHash(),
-                      verified: true
-                  };
-                  setAuditLogs(prev => [newLog, ...prev].slice(0, 100));
-              };
-              
-              addLog('System Event', event.text);
-
-              if (event.impact === 'env') {
-                  setEsgScores(prev => ({ ...prev, environmental: parseFloat(Math.min(100, Math.max(0, prev.environmental + event.val)).toFixed(1)) }));
-              }
-              if (event.impact === 'gov') {
-                  setEsgScores(prev => ({ ...prev, governance: parseFloat(Math.min(100, Math.max(0, prev.governance + event.val)).toFixed(1)) }));
-              }
-          }
-
-      }, 10000); // Heartbeat every 10s
-
-      return () => clearInterval(interval);
-  }, [isInitialized, userName]); // Removed esgScores from dependency to prevent feedback loop re-initialization
-
+  }, [companyName, userName, userRole, tier, budget, carbonCredits, goodwillBalance, xp, collectedCards, purifiedCards, cardMastery, esgScores, customWidgets, auditLogs, quests, todos, badges, carbonData, lastBriefingDate, universalNotes, bookmarks, isInitialized]);
 
   // Derived Level (1 Level per 1000 XP)
   const level = Math.floor(xp / 1000) + 1;
@@ -294,8 +272,24 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setXp(prev => prev + amount);
   }, []);
 
+  const upgradeTier = useCallback((newTier: UserTier) => {
+      setTier(newTier);
+      addAuditLog('Subscription Upgrade', `User upgraded to ${newTier} Tier.`);
+  }, []);
+
   const unlockCard = useCallback((cardId: string) => {
+      // Unlocking just adds to collection, doesn't purify it automatically unless specified elsewhere
       setCollectedCards(prev => !prev.includes(cardId) ? [...prev, cardId] : prev);
+  }, []);
+
+  const purifyCard = useCallback((cardId: string) => {
+      setPurifiedCards(prev => !prev.includes(cardId) ? [...prev, cardId] : prev);
+      // Purifying also grants Novice mastery if not set
+      setCardMastery(prev => prev[cardId] ? prev : { ...prev, [cardId]: 'Novice' });
+  }, []);
+
+  const updateCardMastery = useCallback((cardId: string, level: MasteryLevel) => {
+      setCardMastery(prev => ({ ...prev, [cardId]: level }));
   }, []);
 
   const updateCarbonData = useCallback((data: Partial<CarbonData>) => {
@@ -316,17 +310,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [userName]);
 
   const checkBadges = useCallback((): Badge[] => {
-      // NOTE: We cannot easily access current state inside useCallback without dependency
-      // But passing state makes it change every render.
-      // Strategy: Use functional state update to access current state inside setBadges if needed, 
-      // but here we need to return values. 
-      // Compromise: We recalculate logic based on current state provided by caller or refs?
-      // Better: For this context, we will accept that this function changes when badges/score changes.
-      // But to optimize, we will rely on the `badges` dependency only when invoked.
-      // The real fix is complex for this snippet, so we'll keep it simple but memoized on dependencies.
-      
       let newBadgesFound: Badge[] = [];
-      
       setBadges(prevBadges => {
           const updated = prevBadges.map(badge => {
               if (badge.isUnlocked) return badge;
@@ -344,7 +328,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
           });
           return updated;
       });
-      
       if(newBadgesFound.length > 0) {
           awardXp(newBadgesFound.length * 500);
           newBadgesFound.forEach(b => addAuditLog('Achievement Unlocked', `Unlocked Badge: ${b.name}`));
@@ -360,9 +343,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setQuests(prev => {
           const quest = prev.find(q => q.id === id);
           if (quest && quest.status !== 'completed') {
-              // Side effects inside setState setter is bad practice usually, 
-              // but we need atomic update. Better to use useEffect or separate calls.
-              // We'll dispatch side effects after.
               setTimeout(() => {
                   awardXp(xpReward);
                   addAuditLog('Quest Completed', `Completed: ${quest.title} (+${xpReward} XP)`);
@@ -383,6 +363,37 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteTodo = useCallback((id: number) => {
       setTodos(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // --- CRUD for Notes ---
+  const addNote = useCallback((content: string, tags: string[] = [], source: 'manual'|'voice'|'ai' = 'manual') => {
+      setUniversalNotes(prev => [{
+          id: `note-${Date.now()}`,
+          content,
+          tags,
+          createdAt: Date.now(),
+          source
+      }, ...prev]);
+  }, []);
+
+  const updateNote = useCallback((id: string, content: string) => {
+      setUniversalNotes(prev => prev.map(n => n.id === id ? { ...n, content } : n));
+  }, []);
+
+  const deleteNote = useCallback((id: string) => {
+      setUniversalNotes(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  // --- Bookmarks ---
+  const toggleBookmark = useCallback((item: Omit<BookmarkItem, 'addedAt'>) => {
+      setBookmarks(prev => {
+          const exists = prev.some(b => b.id === item.id);
+          if (exists) {
+              return prev.filter(b => b.id !== item.id);
+          } else {
+              return [{ ...item, addedAt: Date.now() }, ...prev];
+          }
+      });
   }, []);
 
   const updateBudget = useCallback((amount: number) => {
@@ -424,24 +435,27 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Construct the context value object and Memoize it
   const value = useMemo(() => ({
-      companyName, setCompanyName, userName, setUserName, userRole, setUserRole,
+      companyName, setCompanyName, userName, setUserName, userRole, setUserRole, tier, upgradeTier,
       budget, setBudget, updateBudget, carbonCredits, setCarbonCredits, updateCarbonCredits,
       goodwillBalance, updateGoodwillBalance,
-      xp, level, collectedCards, awardXp, unlockCard, badges, checkBadges,
+      xp, level, collectedCards, purifiedCards, cardMastery, updateCardMastery, awardXp, unlockCard, purifyCard, badges, checkBadges,
       quests, todos, completeQuest, updateQuestStatus, addTodo, toggleTodo, deleteTodo,
       esgScores, updateEsgScore, totalScore,
       carbonData, updateCarbonData,
+      universalNotes, addNote, updateNote, deleteNote,
+      bookmarks, toggleBookmark,
       resetData, customWidgets, addCustomWidget, removeCustomWidget, auditLogs, addAuditLog,
       latestEvent,
       lastBriefingDate, markBriefingRead
   }), [
-      companyName, userName, userRole, budget, carbonCredits, goodwillBalance,
-      xp, level, collectedCards, badges, quests, todos, 
+      companyName, userName, userRole, tier, budget, carbonCredits, goodwillBalance,
+      xp, level, collectedCards, purifiedCards, cardMastery, badges, quests, todos, 
       esgScores, totalScore, carbonData, customWidgets, auditLogs, latestEvent, lastBriefingDate,
-      // Include stable callbacks
-      awardXp, unlockCard, checkBadges, completeQuest, updateQuestStatus, addTodo, toggleTodo, deleteTodo,
+      universalNotes, bookmarks,
+      awardXp, unlockCard, purifyCard, updateCardMastery, checkBadges, completeQuest, updateQuestStatus, addTodo, toggleTodo, deleteTodo,
       updateBudget, updateCarbonCredits, updateGoodwillBalance, updateEsgScore, updateCarbonData,
-      resetData, addCustomWidget, removeCustomWidget, addAuditLog, markBriefingRead
+      addNote, updateNote, deleteNote, toggleBookmark,
+      resetData, addCustomWidget, removeCustomWidget, addAuditLog, markBriefingRead, upgradeTier
   ]);
 
   return (

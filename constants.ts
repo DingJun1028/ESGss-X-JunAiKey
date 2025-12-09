@@ -1,7 +1,6 @@
 
 import { Metric, Course, SystemHealth, Language, ReportSection, EsgCard } from './types';
 
-// ... (Existing translations remain unchanged, kept for brevity) ...
 export const TRANSLATIONS = {
   'en-US': {
     nav: {
@@ -16,7 +15,7 @@ export const TRANSLATIONS = {
       finance: 'ROI Simulator',
       audit: 'Audit Trail',
       goodwill: 'Goodwill Coin',
-      gamification: 'Gamification',
+      cardGame: 'ESG Sunshine Card Game',
       researchHub: 'Research Hub',
       academy: 'Academy',
       diagnostics: 'Diagnostics',
@@ -24,7 +23,9 @@ export const TRANSLATIONS = {
       yangBo: 'Yang Bo Zone',
       businessIntel: 'Business Intel',
       healthCheck: 'Health Check',
-      universalTools: 'Universal Tools'
+      universalTools: 'Universal Tools',
+      fundraising: 'Fundraising',
+      aboutUs: 'About Us'
     },
     modules: {
       myEsg: { title: 'My ESG Cockpit', desc: 'Your personalized sustainability command center.' },
@@ -37,7 +38,7 @@ export const TRANSLATIONS = {
       finance: { title: 'Financial Simulator', desc: 'ROI analysis for decarbonization investments.' },
       audit: { title: 'Audit Trail', desc: 'SHA-256 data verification and confidence scoring.' },
       goodwill: { title: 'Goodwill Coin', desc: 'Tokenized rewards and redemption center.' },
-      gamification: { title: 'Gamification', desc: 'Leaderboards, badges, and impact visualization.' },
+      cardGame: { title: 'ESG Sunshine Card Game', desc: 'Global systemization of impact into digital assets.' },
     },
     dashboard: {
       title: 'Executive Dashboard',
@@ -97,7 +98,7 @@ export const TRANSLATIONS = {
       finance: 'ROI 模擬 (ROI Simulator)',
       audit: '稽核軌跡 (Audit Trail)',
       goodwill: '善向幣 (Goodwill Coin)',
-      gamification: '遊戲化 (Gamification)',
+      cardGame: '善向永續 卡牌遊戲',
       researchHub: '研究中心 (Research Hub)',
       academy: '永續學院 (Academy)',
       diagnostics: '系統診斷 (Diagnostics)',
@@ -105,7 +106,9 @@ export const TRANSLATIONS = {
       yangBo: '楊博專區 (Yang Bo)',
       businessIntel: '商情中心 (Biz Intel)',
       healthCheck: '全方位健檢 (Health Check)',
-      universalTools: '萬能工具 (Universal Tools)'
+      universalTools: '萬能工具 (Universal Tools)',
+      fundraising: '善向募資 (Fundraising)',
+      aboutUs: '關於我們 (About Us)'
     },
     modules: {
       myEsg: { title: '我的 ESG (My ESG)', desc: '您的個人化永續戰情室與成長中心。' },
@@ -118,7 +121,7 @@ export const TRANSLATIONS = {
       finance: { title: '財務模擬 (Financial Simulator)', desc: '減碳投資 ROI 分析與碳稅衝擊 (ROI analysis)。' },
       audit: { title: '稽核軌跡 (Audit Trail)', desc: 'SHA-256 數據驗證與信心分級 (Data verification)。' },
       goodwill: { title: '善向幣 (Goodwill Coin)', desc: '代幣化獎勵與兌換中心 (Tokenized rewards)。' },
-      gamification: { title: '遊戲化成長 (Gamification)', desc: '排行榜、徽章與影響力可視化 (Leaderboards & Impact)。' },
+      cardGame: { title: '善向永續 卡牌遊戲', desc: '全域系統化：將影響力鑄造為數位資產。' },
     },
     dashboard: {
       title: '企業決策儀表板 (Executive Dashboard)',
@@ -193,119 +196,144 @@ export const DAILY_BRIEFING_TEMPLATES = {
 };
 
 export const REPORT_STRUCTURE: ReportSection[] = [
-  // ... (Report Structure kept same) ...
   {
     id: '1',
     title: '1 關於本報告書 (About Report)',
+    guidelines: 'Define report scope, boundaries, and reporting period. Reference GRI 102 General Disclosures.',
+    principles: 'Accuracy, Balance, Clarity, Comparability, Reliability, Timeliness (GRI Principles).',
     subSections: [
-      { id: '1.01', title: '1.01 經營者的話', template: '...', example: '...', griStandards: 'GRI 2-22' },
+      { 
+          id: '1.01', 
+          title: '1.01 經營者的話 (Letter from CEO)', 
+          template: '# Message from the CEO\n\n[Opening: Commitment to Sustainability]\n\n[Body: Key Achievements of the Year]\n\n[Closing: Future Outlook]', 
+          example: 'In 2024, we reduced our carbon intensity by 15%...', 
+          griStandards: 'GRI 2-22' 
+      },
+      {
+          id: '1.02', 
+          title: '1.02 關於我們 (About Us)', 
+          template: '## Company Profile\n\n* **Name:** [Name]\n* **HQ:** [Location]\n* **Employees:** [Count]', 
+          griStandards: 'GRI 2-1' 
+      }
     ]
+  },
+  {
+      id: '2',
+      title: '2 環境永續 (Environmental)',
+      guidelines: 'Focus on material topics: Emissions, Energy, Water, Waste.',
+      principles: 'Quantitative data should be consistent with financial reporting where possible.',
+      subSections: [
+          { id: '2.01', title: '2.01 氣候行動 (Climate Action)', template: '## GHG Emissions\n\nScope 1: [Value] tCO2e\nScope 2: [Value] tCO2e', griStandards: 'GRI 305' },
+          { id: '2.02', title: '2.02 能源管理 (Energy)', template: '## Energy Consumption', griStandards: 'GRI 302' }
+      ]
   }
 ];
 
 /**
  * Universal Optical Cards - The Knowledge Prism
  * Theme: "Refracting Resources into Impact"
+ * Updated to support bilingual display dynamically.
  */
-export const ESG_CARDS: EsgCard[] = [
-  // 1. The Legendary Source Code Card
-  {
-    id: 'card-legend-001',
-    title: 'ESGss 善向永續',
-    description: 'A Golden Triangle framework connecting Capital (TSMC), Policy (Taipei), and Knowledge. Transforms compliance into impact.',
-    attribute: 'Governance',
-    category: 'Partnership',
-    rarity: 'Legendary',
-    term: 'ESG Sunshine Protocol',
-    definition: 'An architecture refracting resources into verifiable social impact through data & education.',
-    stats: { defense: 100, offense: 100 },
-    collectionSet: 'Genesis',
-    isPurified: true
-  },
-  // 2. Environmental (E-1 Green Ops)
-  {
-    id: 'card-e1-001',
-    title: 'Scope 1 Tracker',
-    description: 'Precision measurement of direct emissions from owned sources.',
-    attribute: 'Environmental',
-    category: 'Green_Ops',
-    rarity: 'Common',
-    term: 'Direct Emissions',
-    definition: 'GHG emissions from sources that are owned or controlled by the reporting entity.',
-    stats: { defense: 80, offense: 20 },
-    collectionSet: 'Starter',
-    isPurified: true
-  },
-  // 3. Social (S-1 Human Capital)
-  {
-    id: 'card-s1-001',
-    title: 'Berkeley Strategist',
-    description: 'Certified strategic thinking for sustainable development.',
-    attribute: 'Social',
-    category: 'Human_Capital',
-    rarity: 'Epic',
-    term: 'Human Capital Dev',
-    definition: 'The collective skills, knowledge, or other intangible assets of individuals that can be used to create economic value.',
-    stats: { defense: 50, offense: 150 },
-    collectionSet: 'Academy',
-    isPurified: false
-  },
-  // 4. Governance (G-1 Foundation)
-  {
-    id: 'card-g1-001',
-    title: 'Transparency Shield',
-    description: 'Verified disclosure protecting against greenwashing risks.',
-    attribute: 'Governance',
-    category: 'Foundation',
-    rarity: 'Rare',
-    term: 'Greenwashing',
-    definition: 'The practice of making misleading or unsubstantiated claims about the environmental benefits of a product or service.',
-    stats: { defense: 120, offense: 10 },
-    collectionSet: 'Compliance',
-    isPurified: true
-  },
-  // 5. Environmental (E-2 Eco-System)
-  {
-    id: 'card-e2-001',
-    title: 'Supply Chain Symbiosis',
-    description: 'Extending green standards to Tier 2 & 3 suppliers.',
-    attribute: 'Environmental',
-    category: 'Eco_System',
-    rarity: 'Epic',
-    term: 'Scope 3 Upstream',
-    definition: 'Indirect emissions related to purchased goods and services.',
-    stats: { defense: 60, offense: 90 },
-    collectionSet: 'Supply Chain',
-    isPurified: false
-  },
-  // 6. Social (S-2 Social Impact)
-  {
-    id: 'card-s2-001',
-    title: 'Digital Inclusion',
-    description: 'Bridging the digital divide in rural communities.',
-    attribute: 'Social',
-    category: 'Social_Impact',
-    rarity: 'Rare',
-    term: 'SROI',
-    definition: 'Social Return on Investment: A method for measuring values that are not traditionally reflected in financial statements.',
-    stats: { defense: 30, offense: 110 },
-    collectionSet: 'Impact',
-    isPurified: false
-  },
-  // 7. Governance (G-2 Partnership)
-  {
-    id: 'card-g2-001',
-    title: 'Public-Private Pact',
-    description: 'Strategic alliance with city government for Net Zero goals.',
-    attribute: 'Governance',
-    category: 'Partnership',
-    rarity: 'Legendary',
-    term: 'PPP Model',
-    definition: 'Public-Private Partnership: A cooperative arrangement between two or more public and private sectors.',
-    stats: { defense: 90, offense: 200 },
-    collectionSet: 'City',
-    isPurified: false
-  }
+export const getEsgCards = (language: Language): EsgCard[] => {
+  const isZh = language === 'zh-TW';
+  return [
+    {
+      id: 'card-legend-001',
+      title: isZh ? 'ESGss 善向永續' : 'ESGss Sunshine Protocol',
+      description: isZh 
+        ? '建立在資本、政策與知識之間的「黃金三角」三方架構。將合規轉化為影響力。'
+        : 'A Golden Triangle framework connecting Capital (TSMC), Policy (Taipei), and Knowledge. Transforms compliance into impact.',
+      attribute: 'Governance',
+      category: 'Partnership',
+      rarity: 'Legendary',
+      term: isZh ? '善向永續協議' : 'ESG Sunshine Protocol',
+      definition: isZh
+        ? '透過數據驗證與教育賦能，將靜態的 ESG 合規轉化為動態的社會影響力的架構。'
+        : 'An architecture refracting resources into verifiable social impact through data & education.',
+      stats: { defense: 100, offense: 100 },
+      collectionSet: 'Genesis',
+      isPurified: true
+    },
+    {
+      id: 'card-e1-001',
+      title: isZh ? '範疇一追蹤器' : 'Scope 1 Tracker',
+      description: isZh
+        ? '精確測量來自自有源的直接溫室氣體排放。'
+        : 'Precision measurement of direct emissions from owned sources.',
+      attribute: 'Environmental',
+      category: 'Green_Ops',
+      rarity: 'Common',
+      term: isZh ? '直接排放' : 'Direct Emissions',
+      definition: isZh
+        ? '報告實體擁有或控制的來源產生的溫室氣體排放。'
+        : 'GHG emissions from sources that are owned or controlled by the reporting entity.',
+      stats: { defense: 80, offense: 20 },
+      collectionSet: 'Starter',
+      isPurified: true
+    },
+    {
+      id: 'card-e1-rec',
+      title: isZh ? '綠電憑證交易' : 'REC Trader',
+      description: isZh
+        ? '購買再生能源憑證以抵銷範疇二排放，是達成碳中和的過渡工具。'
+        : 'Purchasing Renewable Energy Certificates to offset Scope 2 emissions as a transitional tool for carbon neutrality.',
+      attribute: 'Environmental',
+      category: 'Green_Ops',
+      rarity: 'Common',
+      term: isZh ? 'REC 交易' : 'REC Trading',
+      definition: isZh
+        ? '將再生能源的環境效益與物理電力分離的可交易憑證機制。'
+        : 'Tradable certificates representing the environmental attributes of renewable energy generation, separate from physical power.',
+      stats: { defense: 70, offense: 15 },
+      collectionSet: 'Operations',
+      isPurified: true
+    },
+    {
+      id: 'card-s1-001',
+      title: isZh ? '柏克萊策略菁英' : 'Berkeley Strategy Elite',
+      description: isZh
+        ? '獲得 UC Berkeley Haas 雙軌認證課程，具備國際永續策略規劃能力。'
+        : 'UC Berkeley Haas certification. Global sustainability strategy planning capability.',
+      attribute: 'Social',
+      category: 'Human_Capital',
+      rarity: 'Legendary',
+      term: isZh ? 'ESG 領導力' : 'ESG Leadership',
+      definition: isZh
+        ? '整合商業策略與永續發展目標，推動組織變革的核心能力。'
+        : 'Core competency integrating business strategy with SDGs to drive organizational change.',
+      stats: { defense: 60, offense: 95 },
+      collectionSet: 'Academy',
+      isPurified: false
+    },
+    {
+      id: 'card-g2-001',
+      title: isZh ? '供應鏈護城河' : 'Supply Chain Moat',
+      description: isZh
+        ? '建立高韌性、低碳排的綠色供應鏈網絡。'
+        : 'Building a resilient, low-carbon green supply chain network.',
+      attribute: 'Governance',
+      category: 'Partnership',
+      rarity: 'Epic',
+      term: isZh ? '供應鏈議合' : 'Supplier Engagement',
+      definition: isZh
+        ? '與供應商合作以改善其績效並減少範疇三排放的過程。'
+        : 'Process of working with suppliers to improve their performance and reduce Scope 3 emissions.',
+      stats: { defense: 90, offense: 70 },
+      collectionSet: 'Operations',
+      isPurified: true
+    }
+  ];
+};
+
+// Deprecated static export, kept for legacy if any, but modules should use getEsgCards(lang)
+export const ESG_CARDS = getEsgCards('en-US'); 
+
+// SDR Global Databases
+export const GLOBAL_SDR_MODULES = [
+    { id: 'sdr-cdp', name: 'CDP Open Data', description: 'Global disclosure system for investors, companies, cities.', status: 'available', icon: 'Database' },
+    { id: 'sdr-gri', name: 'GRI Database', description: 'Comprehensive sustainability reporting standards data.', status: 'available', icon: 'FileText' },
+    { id: 'sdr-ifrs', name: 'IFRS S1/S2', description: 'International financial reporting standards for sustainability.', status: 'available', icon: 'Globe' },
+    { id: 'sdr-tnfd', name: 'TNFD Nature Data', description: 'Taskforce on Nature-related Financial Disclosures.', status: 'beta', icon: 'Leaf' },
 ];
 
 export const getMockMetrics = (lang: Language): Metric[] => {

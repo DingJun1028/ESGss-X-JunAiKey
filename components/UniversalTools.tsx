@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { Language } from '../types';
-import { Wrench, Book, Calendar as CalendarIcon, StickyNote, Database, Search, ArrowRight, Check, X, Link as LinkIcon, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wrench, Book, Calendar as CalendarIcon, StickyNote, Database, Search, ArrowRight, Check, X, Link as LinkIcon, RefreshCw, ChevronLeft, ChevronRight, Plus, Trash2, Edit2, Save } from 'lucide-react';
 import { OmniEsgCell } from './OmniEsgCell';
 import { useToast } from '../contexts/ToastContext';
+import { useCompany } from './providers/CompanyProvider';
 
 interface UniversalToolsProps {
   language: Language;
@@ -17,6 +18,9 @@ const GLOSSARY = [
     { term: 'CBAM', def: 'Carbon Border Adjustment Mechanism (EU carbon tariff).' },
     { term: 'Greenwashing', def: 'Misleading information about how a company’s products are more environmentally sound.' },
     { term: 'SBTi', def: 'Science Based Targets initiative for reducing emissions.' },
+    { term: 'TNFD', def: 'Taskforce on Nature-related Financial Disclosures. Framework for nature-related risk management.' },
+    { term: 'SROI', def: 'Social Return on Investment. A method for measuring values that are not traditionally reflected in financial statements.' },
+    { term: 'CDP', def: 'Carbon Disclosure Project. Global disclosure system for investors, companies, cities to manage environmental impacts.' },
 ];
 
 const INTEGRATIONS = [
@@ -29,15 +33,21 @@ const INTEGRATIONS = [
 export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
   const isZh = language === 'zh-TW';
   const { addToast } = useToast();
-  const [activeTool, setActiveTool] = useState<'notes' | 'library' | 'calendar' | 'integration'>('library');
+  const { universalNotes, addNote, updateNote, deleteNote } = useCompany();
+  
+  const [activeTool, setActiveTool] = useState<'notes' | 'library' | 'calendar' | 'integration'>('notes');
   const [searchTerm, setSearchTerm] = useState('');
-  const [noteContent, setNoteContent] = useState('');
+  
+  // Note CRUD State
+  const [noteInput, setNoteInput] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editInput, setEditInput] = useState('');
 
   const tools = [
+      { id: 'notes', icon: StickyNote, label: isZh ? '萬能筆記' : 'Universal Notes' },
       { id: 'library', icon: Book, label: isZh ? '萬能智庫' : 'Universal Library' },
       { id: 'calendar', icon: CalendarIcon, label: isZh ? '萬能日曆' : 'Universal Calendar' },
       { id: 'integration', icon: Database, label: isZh ? '萬能集成' : 'Universal Integration' },
-      { id: 'notes', icon: StickyNote, label: isZh ? '萬能筆記' : 'Universal Notes' },
   ];
 
   const handleConnect = (id: string) => {
@@ -45,6 +55,20 @@ export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
       setTimeout(() => {
           addToast('success', isZh ? '連線成功' : 'Connection Established', 'System');
       }, 1500);
+  };
+
+  const handleAddNote = () => {
+      if(!noteInput.trim()) return;
+      addNote(noteInput, ['Manual']);
+      setNoteInput('');
+      addToast('success', 'Note added', 'System');
+  };
+
+  const handleUpdateNote = (id: string) => {
+      if(!editInput.trim()) return;
+      updateNote(id, editInput);
+      setEditingNoteId(null);
+      addToast('success', 'Note updated', 'System');
   };
 
   const renderCalendar = () => {
@@ -109,15 +133,15 @@ export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1 space-y-2">
+            <div className="lg:col-span-1 grid grid-cols-2 lg:grid-cols-1 gap-2 self-start">
                 {tools.map((tool: any) => (
                     <button 
                         key={tool.id}
                         onClick={() => setActiveTool(tool.id as any)}
-                        className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all border ${activeTool === tool.id ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'}`}
+                        className={`flex items-center gap-3 p-4 rounded-xl transition-all border text-left ${activeTool === tool.id ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'}`}
                     >
-                        <tool.icon className="w-5 h-5" />
-                        <span className="font-bold text-sm">{tool.label}</span>
+                        <tool.icon className="w-5 h-5 shrink-0" />
+                        <span className="font-bold text-sm truncate">{tool.label}</span>
                     </button>
                 ))}
             </div>
@@ -125,22 +149,67 @@ export const UniversalTools: React.FC<UniversalToolsProps> = ({ language }) => {
             <div className="lg:col-span-3 glass-panel p-8 rounded-2xl border border-white/10 min-h-[500px] flex flex-col">
                 {activeTool === 'notes' && (
                     <div className="flex flex-col h-full animate-fade-in">
-                        <div className="flex justify-between items-center mb-4">
+                        <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-white">{isZh ? '萬能筆記 (Universal Notes)' : 'Universal Notes'}</h3>
-                            <button onClick={() => addToast('success', 'Note saved to Knowledge Graph', 'System')} className="text-xs flex items-center gap-1 text-purple-400 hover:text-purple-300">
+                            <button onClick={() => addToast('success', 'Syncing to Cloud...', 'System')} className="text-xs flex items-center gap-1 text-purple-400 hover:text-purple-300">
                                 <RefreshCw className="w-3 h-3" /> Auto-sync
                             </button>
                         </div>
-                        <textarea 
-                            value={noteContent}
-                            onChange={(e) => setNoteContent(e.target.value)}
-                            className="flex-1 bg-slate-900/50 border border-white/10 rounded-xl p-4 text-white resize-none outline-none focus:border-purple-500/50 font-mono text-sm leading-relaxed" 
-                            placeholder={isZh ? "在這裡輸入您的想法，AI 將自動關聯智庫..." : "Type your thoughts here, AI will auto-link to library..."}
-                        />
-                        <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                            {['Idea', 'Meeting', 'Task', 'Draft'].map(tag => (
-                                <span key={tag} className="px-3 py-1 rounded-full bg-white/5 text-xs text-gray-400 border border-white/5 cursor-pointer hover:bg-white/10">#{tag}</span>
-                            ))}
+                        
+                        {/* Note Input */}
+                        <div className="flex gap-2 mb-6">
+                            <input 
+                                type="text"
+                                value={noteInput}
+                                onChange={(e) => setNoteInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                                placeholder={isZh ? "新增筆記 (Enter)..." : "Add a note (Enter)..."}
+                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
+                            />
+                            <button onClick={handleAddNote} className="p-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-colors">
+                                <Plus className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Note List */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                            {universalNotes.length === 0 ? (
+                                <div className="text-center text-gray-500 py-12">
+                                    <StickyNote className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                    {isZh ? '尚無筆記' : 'No notes yet'}
+                                </div>
+                            ) : (
+                                universalNotes.map(note => (
+                                    <div key={note.id} className="p-4 rounded-xl bg-white/5 border border-white/5 group hover:border-purple-500/30 transition-all">
+                                        {editingNoteId === note.id ? (
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    value={editInput}
+                                                    onChange={e => setEditInput(e.target.value)}
+                                                    className="flex-1 bg-black/30 text-white px-2 py-1 rounded border border-white/20"
+                                                    autoFocus
+                                                />
+                                                <button onClick={() => handleUpdateNote(note.id)} className="text-emerald-400 hover:text-emerald-300"><Save className="w-4 h-4" /></button>
+                                                <button onClick={() => setEditingNoteId(null)} className="text-gray-400 hover:text-white"><X className="w-4 h-4" /></button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                                    <div className="flex gap-2 mt-2">
+                                                        <span className="text-[10px] text-gray-500">{new Date(note.createdAt).toLocaleString()}</span>
+                                                        {note.source && <span className="text-[10px] px-1.5 py-0.5 bg-white/10 rounded text-gray-400 uppercase">{note.source}</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => { setEditingNoteId(note.id); setEditInput(note.content); }} className="text-gray-400 hover:text-white p-1"><Edit2 className="w-3 h-3" /></button>
+                                                    <button onClick={() => deleteNote(note.id)} className="text-gray-400 hover:text-red-400 p-1"><Trash2 className="w-3 h-3" /></button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 )}

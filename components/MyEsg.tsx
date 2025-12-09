@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   CheckSquare, Calendar, Newspaper, Star, Crown, Users, ArrowRight, Sparkles, 
   ListTodo, Plus, Clock, ShieldCheck, Upload, Loader2, Image as ImageIcon, Trash2,
-  Bot, TrendingUp, AlertTriangle, Zap, CheckCircle, Target, Radio
+  Bot, TrendingUp, AlertTriangle, Zap, CheckCircle, Target, Radio, Bookmark
 } from 'lucide-react';
 import { Language, Quest, QuestRarity } from '../types';
 import { useCompany } from './providers/CompanyProvider';
@@ -76,10 +76,12 @@ const DailyBriefingModal: React.FC<{
                         </div>
                     </div>
 
-                    {/* AI Message Area */}
-                    <div className="min-h-[60px] text-gray-300 text-lg leading-relaxed mb-8 font-light">
-                        {displayedText}
-                        <span className="inline-block w-1.5 h-5 ml-1 bg-celestial-purple animate-pulse align-middle" />
+                    {/* AI Message Area - STRICT SINGLE LINE */}
+                    <div className="min-h-[40px] text-gray-300 text-lg leading-relaxed mb-8 font-light flex items-center">
+                        <div className="whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                            {displayedText}
+                        </div>
+                        <span className="inline-block w-1.5 h-5 ml-1 bg-celestial-purple animate-pulse align-middle flex-shrink-0" />
                     </div>
 
                     {/* Insights Grid */}
@@ -142,7 +144,8 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
     userName, collectedCards, 
     quests, updateQuestStatus, completeQuest,
     todos, addTodo, toggleTodo, deleteTodo,
-    lastBriefingDate, markBriefingRead
+    lastBriefingDate, markBriefingRead,
+    toggleBookmark, bookmarks
   } = useCompany();
   
   const { addToast } = useToast();
@@ -150,15 +153,11 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newTodo, setNewTodo] = useState('');
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
-  
-  // Controls the Daily Briefing Modal logic
   const [showBriefing, setShowBriefing] = useState(false);
 
   useEffect(() => {
-      // Check if briefed today
       const today = new Date().toDateString();
       if (lastBriefingDate !== today) {
-          // Slight delay for smoother entry animation after load
           const timer = setTimeout(() => setShowBriefing(true), 1000);
           return () => clearTimeout(timer);
       }
@@ -170,7 +169,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
       addToast('success', isZh ? '情報已同步至策略中樞' : 'Insights synced to Strategy Hub', 'JunAiKey');
   };
 
-  // --- Handlers: To-Do ---
   const handleAddTodo = (e: React.FormEvent) => {
       e.preventDefault();
       if (!newTodo.trim()) return;
@@ -178,7 +176,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
       setNewTodo('');
   };
 
-  // --- Handlers: Quests ---
   const getRarityStyles = (rarity: QuestRarity) => {
       switch(rarity) {
           case 'Common': return 'border-white/10 bg-white/5';
@@ -190,12 +187,10 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
 
   const handleQuestClick = (quest: Quest) => {
       if (quest.status === 'completed' || quest.status === 'verifying') return;
-      
       if (quest.requirement === 'image_upload') {
           setActiveQuestId(quest.id);
           fileInputRef.current?.click();
       } else {
-          // Manual completion immediately
           completeQuest(quest.id, quest.xp);
           addToast('reward', isZh ? `完成任務！+${quest.xp} XP` : `Quest Complete! +${quest.xp} XP`, 'System');
       }
@@ -206,36 +201,34 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
           const questId = activeQuestId;
           const quest = quests.find(q => q.id === questId);
           if (!quest) return;
-
           const file = e.target.files[0];
-          
-          // 1. Set status to verifying
           updateQuestStatus(questId, 'verifying');
           addToast('info', isZh ? 'JunAiKey 視覺引擎正在分析...' : 'JunAiKey Vision analyzing...', 'Verification');
-
-          // 2. Real AI Processing
           const verification = await verifyQuestImage(quest.title, quest.desc, file, language);
-
           if (verification.success) {
                completeQuest(questId, quest.xp);
                addToast('success', verification.reason, 'AI Verified');
                addToast('reward', `+${quest.xp} XP`, 'Quest Complete');
           } else {
-               updateQuestStatus(questId, 'active'); // Reset on failure
+               updateQuestStatus(questId, 'active');
                addToast('error', verification.reason, 'Verification Failed');
           }
       }
-      // Reset input
       if (fileInputRef.current) fileInputRef.current.value = '';
       setActiveQuestId(null);
   };
 
-  // --- Mock Data ---
   const intelligence = [
-      { id: 1, type: 'podcast', title: isZh ? '楊博的 ESG 創價實驗室 EP.24' : "Yang Bo's ESG Lab EP.24", meta: '15 min' },
-      { id: 2, type: 'course', title: isZh ? '最新課程：供應鏈碳管理' : 'New Course: Supply Chain Carbon', meta: 'Academy' },
-      { id: 3, type: 'news', title: isZh ? '歐盟碳邊境稅最新動態' : 'EU CBAM Latest Updates', meta: '2h ago' }
+      { id: 'intel-1', type: 'podcast', title: isZh ? '楊博的 ESG 創價實驗室 EP.24' : "Yang Bo's ESG Lab EP.24", meta: '15 min' },
+      { id: 'intel-2', type: 'course', title: isZh ? '最新課程：供應鏈碳管理' : 'New Course: Supply Chain Carbon', meta: 'Academy' },
+      { id: 'intel-3', type: 'news', title: isZh ? '歐盟碳邊境稅最新動態' : 'EU CBAM Latest Updates', meta: '2h ago' }
   ];
+  
+  const handleBookmark = (item: any) => {
+      toggleBookmark({ id: item.id, type: item.type, title: item.title });
+      const isAdded = !bookmarks.some(b => b.id === item.id);
+      addToast(isAdded ? 'success' : 'info', isAdded ? 'Added to My Collection' : 'Removed from My Collection', 'Bookmark');
+  };
 
   const calendarItems = [
     { id: 1, title: 'Net Zero Summit', time: '09:00 AM', type: 'Event', date: 25 },
@@ -289,8 +282,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
         />
 
         <div className="space-y-6 animate-fade-in pb-12">
-        
-        {/* 1. Header */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-4 pb-4 border-b border-white/5">
             <div>
                 <h1 className="text-3xl font-bold text-white mb-2">
@@ -315,12 +306,7 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            
-            {/* --- Row 1: Production & Gamification --- */}
-            
-            {/* 1. My Quests (System Gamification) (2 cols) */}
             <div className="md:col-span-2 glass-panel p-0 rounded-2xl border-white/10 flex flex-col overflow-hidden relative">
-                {/* Header with gradient */}
                 <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center relative z-10">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                         <ShieldCheck className="w-5 h-5 text-celestial-gold" />
@@ -344,10 +330,7 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                                 ${quest.status === 'completed' ? 'opacity-50 grayscale' : 'hover:scale-[1.01] hover:shadow-lg'}
                             `}
                         >
-                            {/* Rarity Glow Effect */}
                             {quest.rarity === 'Legendary' && <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-transparent animate-pulse pointer-events-none" />}
-                            
-                            {/* Status Icon */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${
                                 quest.status === 'completed' ? 'bg-emerald-500 border-emerald-400' :
                                 quest.status === 'verifying' ? 'bg-blue-500 border-blue-400 animate-pulse' :
@@ -359,7 +342,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                                 <Target className="w-5 h-5 text-gray-300" />
                                 }
                             </div>
-
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <span className={`text-xs font-bold uppercase tracking-wider px-1.5 rounded-sm border 
@@ -375,7 +357,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                                 </div>
                                 <p className="text-xs text-gray-400 truncate">{quest.desc}</p>
                             </div>
-
                             <div className="text-right shrink-0">
                                 <div className="text-sm font-mono font-bold text-celestial-gold">+{quest.xp} XP</div>
                                 {quest.requirement === 'image_upload' && quest.status === 'active' && (
@@ -387,18 +368,9 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                         </div>
                     ))}
                 </div>
-                
-                {/* Hidden File Input for Image Quests */}
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={handleFileUpload} 
-                />
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
             </div>
 
-            {/* 2. Latest Intelligence (New) (1 col) */}
             <div className="glass-panel p-6 rounded-2xl border-white/10 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -406,29 +378,35 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                         {isZh ? '最新情報' : 'Latest Intel'}
                     </h3>
                 </div>
-                
                 <div className="flex-1 space-y-3">
                     {intelligence.map(item => (
-                        <div key={item.id} className="p-3 bg-white/5 rounded-xl border border-white/5 hover:border-celestial-purple/30 transition-all cursor-pointer group">
-                            <div className="flex justify-between items-start mb-1">
-                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                                    item.type === 'podcast' ? 'bg-purple-500/20 text-purple-300' :
-                                    item.type === 'course' ? 'bg-blue-500/20 text-blue-300' :
-                                    'bg-gray-500/20 text-gray-300'
-                                }`}>
-                                    {item.type}
-                                </span>
-                                <span className="text-[10px] text-gray-500">{item.meta}</span>
+                        <div key={item.id} className="p-3 bg-white/5 rounded-xl border border-white/5 hover:border-celestial-purple/30 transition-all group flex gap-3">
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                                        item.type === 'podcast' ? 'bg-purple-500/20 text-purple-300' :
+                                        item.type === 'course' ? 'bg-blue-500/20 text-blue-300' :
+                                        'bg-gray-500/20 text-gray-300'
+                                    }`}>
+                                        {item.type}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">{item.meta}</span>
+                                </div>
+                                <h4 className="text-sm font-medium text-white group-hover:text-celestial-purple transition-colors leading-snug">
+                                    {item.title}
+                                </h4>
                             </div>
-                            <h4 className="text-sm font-medium text-white group-hover:text-celestial-purple transition-colors leading-snug">
-                                {item.title}
-                            </h4>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleBookmark(item); }}
+                                className={`self-start p-1 rounded hover:bg-white/10 ${bookmarks.some(b => b.id === item.id) ? 'text-celestial-gold' : 'text-gray-600 hover:text-celestial-gold'}`}
+                            >
+                                <Star className={`w-4 h-4 ${bookmarks.some(b => b.id === item.id) ? 'fill-current' : ''}`} />
+                            </button>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* 3. My To-Do (1 col) */}
             <div className="glass-panel p-6 rounded-2xl border-white/10 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -439,13 +417,9 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                         {todos.filter(t => t.done).length}/{todos.length}
                     </div>
                 </div>
-                
                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1 max-h-[200px]">
                     {todos.map(task => (
-                        <div 
-                            key={task.id} 
-                            className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 group transition-colors"
-                        >
+                        <div key={task.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 group transition-colors">
                             <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => toggleTodo(task.id)}>
                                 <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${task.done ? 'bg-emerald-500 border-emerald-500' : 'border-gray-500 hover:border-emerald-400'}`}>
                                     {task.done && <CheckSquare className="w-3 h-3 text-white" />}
@@ -460,8 +434,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                         </div>
                     ))}
                 </div>
-
-                {/* Add Task Input */}
                 <form onSubmit={handleAddTodo} className="mt-4 pt-3 border-t border-white/10 relative">
                     <input 
                         type="text" 
@@ -476,19 +448,13 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                 </form>
             </div>
 
-            {/* --- Row 2: Featured Content --- */}
-
-            {/* 4. Dr. Yang's Report (Featured, 2 cols) */}
             <DrYangReportCard />
 
-            {/* 5. My Calendar (Replaced Events) (1 col) */}
             <div className="glass-panel p-6 rounded-2xl border-white/10 flex flex-col">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-red-400" />
                     {isZh ? '我的日曆 (Calendar)' : 'My Calendar'}
                 </h3>
-                
-                {/* Weekly Date Strip */}
                 <div className="flex justify-between mb-4 pb-2 border-b border-white/5">
                     {weekDays.map((d, i) => (
                         <div key={i} className={`flex flex-col items-center p-1.5 rounded-lg ${d.active ? 'bg-red-500/20 text-white border border-red-500/40' : 'text-gray-500 hover:bg-white/5'}`}>
@@ -497,8 +463,6 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                         </div>
                     ))}
                 </div>
-
-                {/* Schedule List */}
                 <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar max-h-[150px]">
                     {calendarItems.map(ev => (
                         <div key={ev.id} className="flex gap-3 items-center p-2 rounded-lg hover:bg-white/5 cursor-pointer group">
@@ -516,24 +480,33 @@ export const MyEsg: React.FC<MyEsgProps> = ({ language }) => {
                 </div>
             </div>
 
-            {/* 6. My Collection (1 col) */}
             <div className="glass-panel p-6 rounded-2xl border-white/10 bg-gradient-to-b from-slate-800/50 to-transparent">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-celestial-gold" />
+                    <Bookmark className="w-5 h-5 text-celestial-gold" />
                     {isZh ? '我的收藏' : 'My Collection'}
                 </h3>
-                <div className="grid grid-cols-2 gap-2">
-                    {collectedCards.slice(0, 4).map((cardId, i) => (
-                        <div key={i} className="aspect-[3/4] bg-slate-700/50 rounded-lg border border-white/10 flex items-center justify-center relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent" />
-                            <div className={`w-8 h-8 rounded-full ${i===0 ? 'bg-celestial-gold' : 'bg-gray-600'} shadow-lg`} />
-                        </div>
-                    ))}
-                    {collectedCards.length === 0 && <span className="text-xs text-gray-500 col-span-2">No cards yet.</span>}
+                <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
+                    {bookmarks.length === 0 ? (
+                        <span className="text-xs text-gray-500 block text-center py-4">No bookmarks yet.</span>
+                    ) : (
+                        bookmarks.map((b) => (
+                            <div key={b.id} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5 hover:border-celestial-gold/30 group cursor-pointer">
+                                <Star className="w-3 h-3 text-celestial-gold fill-current" />
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-bold text-white truncate">{b.title}</div>
+                                    <div className="text-[9px] text-gray-500">{b.type.toUpperCase()} • {new Date(b.addedAt).toLocaleDateString()}</div>
+                                </div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); toggleBookmark(b); }}
+                                    className="p-1 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ))
+                    )}
                 </div>
-                <button className="w-full mt-4 text-xs text-center text-gray-400 hover:text-white transition-colors">{isZh ? '查看全部' : 'View All'}</button>
             </div>
-
         </div>
     </div>
     </>
