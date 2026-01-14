@@ -16,7 +16,7 @@
     "react-dom": "^19.2.0",
     "uuid": "^13.0.0",
     "marked": "^15.0.0",
-    "html2pdf.js": "^0.10.1",
+    "html2pdf.js": "^0.14.0",
     "react-virtuoso": "^4.6.2"
   },
   "devDependencies": {
